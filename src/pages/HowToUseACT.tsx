@@ -1,0 +1,125 @@
+import React, { useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { ArrowLeft, FileText, Image, Search } from 'lucide-react';
+
+const HowToUseACT: React.FC = () => {
+  // Scroll to top when component mounts
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
+  return (
+    <main 
+      className="min-h-screen"
+      style={{
+        background: 'linear-gradient(135deg, #3a3838 0%, #252525 100%)',
+      }}
+    >
+      <div className="container mx-auto px-4 md:px-6 pt-24 sm:pt-32 pb-16">
+        <div className="max-w-4xl mx-auto">
+          {/* Back button */}
+          <Link 
+            to="/detect" 
+            className="inline-flex items-center text-white hover:text-blue-200 transition-colors mb-8"
+          >
+            <ArrowLeft size={20} className="mr-2" />
+            Back to ACT Tool
+          </Link>
+
+          {/* Header */}
+          <div className="text-center mb-12">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-6">
+              How to Use the ACT
+            </h1>
+            <p className="text-lg sm:text-xl text-blue-100 max-w-3xl mx-auto">
+              Simple instructions for using our Antisemitism Checker Tool
+            </p>
+          </div>
+
+          {/* Content Sections */}
+          <div className="space-y-8">
+            
+            {/* Basic Instructions */}
+            <section className="bg-white bg-opacity-10 rounded-xl p-6 md:p-8 backdrop-blur-sm">
+              <div className="flex items-center mb-6">
+                <Search className="w-8 h-8 text-blue-300 mr-3" />
+                <h2 className="text-2xl md:text-3xl font-bold text-white">How to Use</h2>
+              </div>
+
+              <div className="space-y-6 text-blue-100">
+                <p className="text-lg">
+                  Into the box, paste a piece of text or an image or upload an image from your device using the camera icon. Once activated the tool will tell you whether your input is antisemitic or not.
+                </p>
+                
+                <p className="text-lg">
+                  The analysis for images will activate automatically; for text, press 'Send'
+                </p>
+                
+                <p className="text-lg">
+                  Text may be a short piece as below or a document of many pages.
+                </p>
+              </div>
+            </section>
+
+            {/* Example Quote */}
+            <section className="bg-white bg-opacity-10 rounded-xl p-6 md:p-8 backdrop-blur-sm">
+              <div className="flex items-center mb-6">
+                <FileText className="w-8 h-8 text-green-300 mr-3" />
+                <h2 className="text-2xl md:text-3xl font-bold text-white">Example</h2>
+              </div>
+
+              <div className="bg-gray-800 bg-opacity-50 rounded-lg p-6">
+                <p className="text-blue-100 italic">
+                  'Congresswoman Marjorie Taylor Greene (R-GA) had blamed "space lasers... beaming the sun's power down to Earth," funded by "Rothschild Inc"'
+                </p>
+              </div>
+            </section>
+
+            {/* Test Examples */}
+            <section className="bg-white bg-opacity-10 rounded-xl p-6 md:p-8 backdrop-blur-sm">
+              <div className="flex items-center mb-6">
+                <Image className="w-8 h-8 text-purple-300 mr-3" />
+                <h2 className="text-2xl md:text-3xl font-bold text-white">Try These Examples</h2>
+              </div>
+
+              <p className="text-blue-100 mb-6">
+                Here are some images and texts to try as examples – simply copy and paste them into the ACT:
+              </p>
+
+              <div className="space-y-6">
+                {/* Example 1 */}
+                <div className="bg-gray-800 bg-opacity-50 rounded-lg p-6">
+                  <h4 className="font-semibold text-white mb-3">Example 1:</h4>
+                  <p className="text-blue-100 leading-relaxed">
+                    When Jews are viewed as privileged white oppressors, they may feel that their Jewish identities are erased and that their co-workers are viewing them through stereotypes about Jewish conspiracy and power," Marcus says. "[Employers] must use DE&I as a tool, but they must also recognize that this tool has sometimes been compromised
+                  </p>
+                </div>
+
+                {/* Example 2 */}
+                <div className="bg-gray-800 bg-opacity-50 rounded-lg p-6">
+                  <h4 className="font-semibold text-white mb-3">Example 2:</h4>
+                  <p className="text-blue-100 leading-relaxed">
+                    Despite clear recommendations from previous reports, and the Labour Party's acknowledgment of the requirement, the Party has failed to deliver adequate training to those individuals who are responsible for handling antisemitism complaints. The Party's provision of academic education rather than practical training fails to equip decision-makers with the knowledge and skills they need. This failure contradicts the Party's zero-tolerance commitment, and contributes to a lack of trust and confidence in the complaint handling system. The failure to provide adequate training to those handling antisemitism complaints was unjustified and indirectly discriminates against Jewish Labour Party members. We consider it justifiable for the Labour Party to have six months, following publication of our report, in which to arrange and implement appropriate practical training, in consultation with Jewish stakeholders, and therefore do not make a finding that the current failure to do so is unlawful.
+                  </p>
+                </div>
+              </div>
+            </section>
+
+            {/* Call to Action */}
+            <div className="text-center mt-12">
+              <Link 
+                to="/detect"
+                className="inline-flex items-center justify-center rounded-md font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 border-2 bg-blue-700 text-white hover:bg-blue-800 px-3 py-1"
+                style={{borderColor: '#ed7c30'}}
+              >
+                Try the ACT Tool Now
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  );
+};
+
+export default HowToUseACT;
