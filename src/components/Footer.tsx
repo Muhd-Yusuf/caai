@@ -1,7 +1,7 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import Logo from './Logo';
 import { Mail, Twitter, Facebook, Linkedin } from 'lucide-react';
-import JoinForm from './JoinForm';
 
 const Footer: React.FC = () => {
   const handleJoinForumClick = () => {
@@ -32,12 +32,12 @@ const Footer: React.FC = () => {
               </a>
             </div>
           </div>
-          
+
           <div>
             <h4 className="font-bold text-lg mb-4 text-white">Get Involved</h4>
             <ul className="space-y-3">
               <li>
-                <button 
+                <button
                   onClick={handleJoinForumClick}
                   className="text-white hover:text-blue-300 transition-colors p-0 bg-transparent"
                 >
@@ -51,11 +51,11 @@ const Footer: React.FC = () => {
             </ul>
           </div>
         </div>
-        
+
         <div className="pt-8 border-t border-gray-600">
           <div className="flex flex-col md:flex-row justify-between items-center">
             <p className="text-white text-sm">
-              Copyright © Combat Antisemitism with AI, 2025. All rights reserved 
+              Copyright © Combat Antisemitism with AI, 2025. All rights reserved
             </p>
             <div className="flex space-x-6 mt-4 md:mt-0">
               <a href="#" className="text-white hover:text-blue-300 text-sm transition-colors">
@@ -67,6 +67,9 @@ const Footer: React.FC = () => {
               <a href="#" className="text-white hover:text-blue-300 text-sm transition-colors">
                 Accessibility
               </a>
+              <Link to="/admin/login" className="text-gray-500 hover:text-blue-300 text-sm transition-colors">
+                Admin
+              </Link>
             </div>
           </div>
         </div>

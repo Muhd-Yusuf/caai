@@ -1,11 +1,7 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
-import Button from '../components/Button';
-import JoinForm from '../components/JoinForm';
 
 const InfoSection: React.FC = () => {
-  const [showJoinFormModal, setShowJoinFormModal] = useState(false);
-
   const handleJoinForumClick = () => {
     window.open('https://chat.whatsapp.com/GKHHEgY1NvI2xBA7PxLEyC', '_blank');
   };
@@ -21,13 +17,13 @@ const InfoSection: React.FC = () => {
             As Jew-hate continues to rise online - seemingly like a black hole without end - we're leveraging cutting-edge artificial intelligence technology to identify, analyse, and counter harmful content across digital platforms.
           </p>
         </div>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
           <div className="rounded-lg p-6 border-l-4 border-blue-700 transform transition-all duration-300 hover:scale-105 hover:shadow-xl" style={{backgroundColor: '#ececec'}}>
             <h3 className="text-xl font-bold mb-3 text-gray-900">AI Tools</h3>
             <p className="text-gray-700">
               We build AI tools to combat Jew-hate on social media, and specifically to work at scale. We also build other tools, such as ACT (Antisemitism Checker Tool), available by clicking the blue button above, to help people and companies identify antisemitic content in text and images. It's free to use – register{' '}
-              <Link 
+              <Link
                 to="/register"
                 className="text-red-600 hover:text-red-700 underline font-medium"
               >
@@ -35,14 +31,14 @@ const InfoSection: React.FC = () => {
               </Link>.
             </p>
           </div>
-          
+
           <div className="rounded-lg p-6 border-l-4 border-blue-700 transform transition-all duration-300 hover:scale-105 hover:shadow-xl" style={{backgroundColor: '#ececec'}}>
             <h3 className="text-xl font-bold mb-3 text-gray-900">Forum</h3>
             <p className="text-gray-700">
-              The CAAI forum is a group dedicated to applying AI to combating Jew-hate. It brings together corporate AI leaders, academics, including those specialising in AI, professionals, students, and those simply interested in the field. 
+              The CAAI forum is a group dedicated to applying AI to combating Jew-hate. It brings together corporate AI leaders, academics, including those specialising in AI, professionals, students, and those simply interested in the field.
             </p>
           </div>
-          
+
           <div className="rounded-lg p-6 border-l-4 border-blue-700 transform transition-all duration-300 hover:scale-105 hover:shadow-xl" style={{backgroundColor: '#ececec'}}>
             <h3 className="text-xl font-bold mb-3 text-gray-900">Detection and Response</h3>
             <p className="text-gray-700">
@@ -50,9 +46,9 @@ const InfoSection: React.FC = () => {
             </p>
           </div>
         </div>
-        
+
         <div className="flex justify-center">
-          <button 
+          <button
             onClick={handleJoinForumClick}
             className="font-medium transition-colors border-2 px-3 py-1 rounded-md text-white hover:text-blue-200"
             style={{borderColor: '#ed7c30'}}
@@ -61,15 +57,6 @@ const InfoSection: React.FC = () => {
           </button>
         </div>
       </div>
-
-      {/* JoinForm Modal */}
-      <JoinForm
-        buttonOnly
-        variant="header"
-        isOpen={showJoinFormModal}
-        onOpenChange={setShowJoinFormModal}
-        hideButton
-      />
     </section>
   );
 };

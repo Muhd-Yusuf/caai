@@ -2,12 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { MenuIcon, X } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import Logo from './Logo';
-import JoinForm from './JoinForm';
 
 const Header: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
-  const [showJoinFormModal, setShowJoinFormModal] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const isDetectPage = location.pathname === '/detect';
@@ -26,15 +24,6 @@ const Header: React.FC = () => {
       if (element) element.scrollIntoView({ behavior: 'smooth' });
     }
     setIsMenuOpen(false);
-  };
-
-  const handleJoinUsClick = () => {
-    setIsMenuOpen(false);
-    // Use a small timeout to ensure the menu close animation completes 
-    // before opening the modal
-    setTimeout(() => {
-      setShowJoinFormModal(true);
-    }, 50);
   };
 
   return (
@@ -58,7 +47,7 @@ const Header: React.FC = () => {
                className="bg-blue-600 text-white px-3 py-1 rounded-md hover:bg-blue-700 transition border-2"
                 style={{borderColor: '#ed7c30'}}
               >
-                ACT: Antisemitism Checker Tool 
+                ACT: Antisemitism Checker Tool
               </Link>
             )}
             {isDetectPage && (
@@ -92,15 +81,6 @@ const Header: React.FC = () => {
                 Capabilities
               </button>
             )}
-            {/* <button
-              onClick={handleJoinUsClick}
-              className={`font-medium transition-colors border-2 px-3 py-1 rounded-md ${
-                isScrolled ? 'text-white hover:text-blue-200' : 'text-white hover:text-blue-200'
-              }`}
-              style={{borderColor: '#ed7c30'}}
-            >
-              Join Us
-            </button> */}
           </nav>
 
           {/* Mobile menu button */}
@@ -156,26 +136,10 @@ const Header: React.FC = () => {
                   Capabilities
                 </button>
               )}
-              {/* <button 
-                onClick={handleJoinUsClick}
-                className="text-white hover:text-blue-200 font-medium text-left py-2 border-2 px-3 rounded-md"
-                style={{borderColor: '#ed7c30'}}
-              >
-                Join Us
-              </button> */}
             </nav>
           </div>
         </div>
       )}
-      
-      {/* JoinForm Modal - Always mounted but conditionally visible */}
-      <JoinForm
-        buttonOnly
-        variant="header"
-        isOpen={showJoinFormModal}
-        onOpenChange={setShowJoinFormModal}
-        hideButton
-      />
     </header>
   );
 };

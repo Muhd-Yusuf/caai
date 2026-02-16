@@ -4,19 +4,18 @@ import Modal from 'react-modal';
 import jsPDF from 'jspdf';
 import cameraIcon from '../assets/camera-icon.svg';
 import { compressImage } from '../utils/imageUtils';
+import { api } from '../services/api';
 
 Modal.setAppElement('#root');
-
-const WEBHOOK_URL = 'https://caai-project-development.app.n8n.cloud/webhook/Chat';
 
 // Generate a new session ID each time the page loads
 const sessionId = crypto.randomUUID();
 
 const Detect: React.FC = () => {
   const [messages, setMessages] = useState<Array<{ content: { type: string, content: string }, isUser: boolean }>>([{
-    content: { 
-      type: 'text', 
-      content: 'Hello! I can help you detect antisemitic content in text or images. Please share what you\'d like me to analyze.' 
+    content: {
+      type: 'text',
+      content: 'Hello! I can help you detect antisemitic content in text or images. Please share what you\'d like me to analyze.'
     },
     isUser: false
   }]);
@@ -24,6 +23,7 @@ const Detect: React.FC = () => {
   const [isDragging, setIsDragging] = useState(false);
   const [hasInteracted, setHasInteracted] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [rateLimitMessage, setRateLimitMessage] = useState<string | null>(null);
 
   const createLoadingElement = () => (
     <div className="flex justify-start mb-4">
@@ -114,41 +114,19 @@ const Detect: React.FC = () => {
     toggleInputs(true);
     setHasInteracted(true); // Enable share button after first interaction
 
-    let payload;
+    const payload: Record<string, unknown> = {
+      sessionId,
+      chatInput: type === 'image' ? 'analyze this image' : content,
+    };
+
     if (type === 'image') {
-      payload = [{
-        action: 'sendMessage',
-        sessionId,
-        chatInput: 'analyze this image',
-        files: [{
-          fileName: 'image.jpg',
-          fileSize: '1 MB',
-          fileType: 'image',
-          mimeType: 'image/jpeg',
-          fileExtension: 'jpeg',
-          binaryKey: content,
-        }],
-      }];
-    } else {
-      payload = [{
-        action: 'sendMessage',
-        sessionId,
-        chatInput: content,
-      }];
+      payload.imageData = content;
     }
 
     try {
-      const response = await fetch(WEBHOOK_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
+      setRateLimitMessage(null);
+      const data = await api.post<{ output: string }>('/act/chat', payload);
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
       if (!data || !data.output) {
         throw new Error('Invalid response format from server');
       }
@@ -157,12 +135,20 @@ const Detect: React.FC = () => {
         content: { content: data.output, type: 'text' },
         isUser: false,
       }]);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error sending message:', error);
-      setMessages(prev => [...prev, {
-        content: { content: `Error: ${error instanceof Error ? error.message : 'An unexpected error occurred'}`, type: 'text' },
-        isUser: false,
-      }]);
+      if (error.status === 429) {
+        setRateLimitMessage(error.message);
+        setMessages(prev => [...prev, {
+          content: { content: error.message, type: 'text' },
+          isUser: false,
+        }]);
+      } else {
+        setMessages(prev => [...prev, {
+          content: { content: `Error: ${error.message || 'An unexpected error occurred'}`, type: 'text' },
+          isUser: false,
+        }]);
+      }
     } finally {
       setIsLoading(false);
       toggleInputs(false);
@@ -505,7 +491,13 @@ const Detect: React.FC = () => {
               Share text or images to analyze potential antisemitic content
             </p>
           </div>
-          
+
+          {rateLimitMessage && (
+            <div className="mb-4 p-4 bg-yellow-100 border border-yellow-400 text-yellow-800 rounded-lg text-center">
+              {rateLimitMessage}
+            </div>
+          )}
+
           <div 
             className={`bg-gray-50 rounded-xl shadow-2xl overflow-hidden relative ${isDragging ? 'ring-2 ring-blue-500' : ''}`}
             onDragOver={handleDragOver}

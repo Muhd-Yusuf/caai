@@ -1,0 +1,218 @@
+import { Router, Request, Response } from 'express';
+import jwt from 'jsonwebtoken';
+import { config } from '../config';
+import { supabase } from '../services/supabase';
+import { authenticateUser } from '../middleware/auth';
+import { authenticateAdmin } from '../middleware/adminAuth';
+import { AuthenticatedRequest, AdminRequest } from '../types';
+
+const router = Router();
+
+// POST /api/auth/register — Register user (name + email), set JWT cookie
+router.post('/register', async (req: Request, res: Response) => {
+  try {
+    const { name, email } = req.body;
+
+    if (!name || !email) {
+      res.status(400).json({ error: 'Name and email are required' });
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      res.status(400).json({ error: 'Invalid email format' });
+      return;
+    }
+
+    // Check if email already exists
+    const { data: existing } = await supabase
+      .from('users')
+      .select('id, name, email, is_active')
+      .eq('email', email.toLowerCase())
+      .single();
+
+    if (existing) {
+      if (!existing.is_active) {
+        res.status(403).json({ error: 'This account has been suspended' });
+        return;
+      }
+
+      // User exists and is active — sign them in
+      const token = jwt.sign(
+        { userId: existing.id, email: existing.email },
+        config.jwtSecret,
+        { expiresIn: '30d' }
+      );
+
+      res.cookie('caai_token', token, {
+        httpOnly: true,
+        secure: config.nodeEnv === 'production',
+        sameSite: 'lax',
+        maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+      });
+
+      res.json({ user: { id: existing.id, name: existing.name, email: existing.email } });
+      return;
+    }
+
+    // Create new user
+    const { data: newUser, error } = await supabase
+      .from('users')
+      .insert({
+        name: name.trim(),
+        email: email.toLowerCase().trim(),
+        created_by: 'self',
+      })
+      .select('id, name, email')
+      .single();
+
+    if (error) {
+      console.error('User creation error:', error);
+      res.status(500).json({ error: 'Failed to create account' });
+      return;
+    }
+
+    const token = jwt.sign(
+      { userId: newUser.id, email: newUser.email },
+      config.jwtSecret,
+      { expiresIn: '30d' }
+    );
+
+    res.cookie('caai_token', token, {
+      httpOnly: true,
+      secure: config.nodeEnv === 'production',
+      sameSite: 'lax',
+      maxAge: 30 * 24 * 60 * 60 * 1000,
+    });
+
+    res.status(201).json({ user: { id: newUser.id, name: newUser.name, email: newUser.email } });
+  } catch (err) {
+    console.error('Register error:', err);
+    res.status(500).json({ error: 'Registration failed' });
+  }
+});
+
+// GET /api/auth/me — Check current session
+router.get('/me', authenticateUser, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { data: user, error } = await supabase
+      .from('users')
+      .select('id, name, email, is_active, is_whitelisted')
+      .eq('id', req.user!.userId)
+      .single();
+
+    if (error || !user) {
+      res.status(404).json({ error: 'User not found' });
+      return;
+    }
+
+    if (!user.is_active) {
+      res.clearCookie('caai_token');
+      res.status(403).json({ error: 'Account suspended' });
+      return;
+    }
+
+    res.json({ user });
+  } catch (err) {
+    console.error('Auth check error:', err);
+    res.status(500).json({ error: 'Failed to verify session' });
+  }
+});
+
+// POST /api/auth/admin-login — Admin login via Supabase Auth
+router.post('/admin-login', async (req: Request, res: Response) => {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      res.status(400).json({ error: 'Email and password are required' });
+      return;
+    }
+
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (error || !data.session) {
+      res.status(401).json({ error: 'Invalid credentials' });
+      return;
+    }
+
+    // Verify user is in admin_users table
+    const { data: adminUser, error: adminError } = await supabase
+      .from('admin_users')
+      .select('*')
+      .eq('auth_user_id', data.user.id)
+      .single();
+
+    if (adminError || !adminUser) {
+      res.status(403).json({ error: 'Not authorized as admin' });
+      return;
+    }
+
+    res.cookie('caai_admin_token', data.session.access_token, {
+      httpOnly: true,
+      secure: config.nodeEnv === 'production',
+      sameSite: 'lax',
+      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+    });
+
+    res.json({ admin: { email: adminUser.email } });
+  } catch (err) {
+    console.error('Admin login error:', err);
+    res.status(500).json({ error: 'Admin login failed' });
+  }
+});
+
+// POST /api/auth/admin-logout — Clear admin session
+router.post('/admin-logout', authenticateAdmin, (_req: AdminRequest, res: Response) => {
+  res.clearCookie('caai_admin_token');
+  res.json({ message: 'Logged out' });
+});
+
+// PUT /api/auth/admin-password — Change admin password
+router.put('/admin-password', authenticateAdmin, async (req: AdminRequest, res: Response) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+
+    if (!currentPassword || !newPassword) {
+      res.status(400).json({ error: 'Current and new password are required' });
+      return;
+    }
+
+    if (newPassword.length < 8) {
+      res.status(400).json({ error: 'Password must be at least 8 characters' });
+      return;
+    }
+
+    // Verify current password by re-authenticating
+    const { error: verifyError } = await supabase.auth.signInWithPassword({
+      email: req.adminUser!.email,
+      password: currentPassword,
+    });
+
+    if (verifyError) {
+      res.status(401).json({ error: 'Current password is incorrect' });
+      return;
+    }
+
+    // Update password
+    const { error: updateError } = await supabase.auth.admin.updateUserById(
+      req.adminUser!.auth_user_id,
+      { password: newPassword }
+    );
+
+    if (updateError) {
+      res.status(500).json({ error: 'Failed to update password' });
+      return;
+    }
+
+    res.json({ message: 'Password updated successfully' });
+  } catch (err) {
+    console.error('Password change error:', err);
+    res.status(500).json({ error: 'Failed to change password' });
+  }
+});
+
+export default router;
