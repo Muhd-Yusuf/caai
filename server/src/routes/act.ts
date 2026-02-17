@@ -29,21 +29,29 @@ router.post('/chat', authenticateUser, async (req: AuthenticatedRequest, res: Re
       return;
     }
 
-    // Build payload for n8n
-    const payload: Record<string, unknown> = {
-      chatInput,
+    // Build payload in the format n8n expects
+    const n8nPayload: Record<string, unknown> = {
+      action: 'sendMessage',
       sessionId: sessionId || 'unknown',
+      chatInput: chatInput || 'analyze this image',
     };
 
     if (imageData) {
-      payload.imageData = imageData;
+      n8nPayload.files = [{
+        fileName: 'image.jpg',
+        fileSize: '1 MB',
+        fileType: 'image',
+        mimeType: 'image/jpeg',
+        fileExtension: 'jpeg',
+        binaryKey: imageData,
+      }];
     }
 
-    // Proxy to n8n
+    // Proxy to n8n (wrapped in array as original format)
     const n8nResponse = await fetch(config.n8nWebhookUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
+      body: JSON.stringify([n8nPayload]),
     });
 
     if (!n8nResponse.ok) {
