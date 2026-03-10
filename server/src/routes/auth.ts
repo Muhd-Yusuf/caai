@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
 import { config } from '../config';
-import { supabase } from '../services/supabase';
+import { supabase, supabaseAuth } from '../services/supabase';
 import { authenticateUser } from '../middleware/auth';
 import { authenticateAdmin } from '../middleware/adminAuth';
 import { AuthenticatedRequest, AdminRequest } from '../types';
@@ -119,6 +119,12 @@ router.get('/me', authenticateUser, async (req: AuthenticatedRequest, res: Respo
   }
 });
 
+// POST /api/auth/logout — Clear user session cookie
+router.post('/logout', (_req: Request, res: Response) => {
+  res.clearCookie('caai_token');
+  res.json({ message: 'Logged out' });
+});
+
 // POST /api/auth/admin-login — Admin login via Supabase Auth
 router.post('/admin-login', async (req: Request, res: Response) => {
   try {
@@ -129,7 +135,7 @@ router.post('/admin-login', async (req: Request, res: Response) => {
       return;
     }
 
-    const { data, error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabaseAuth.auth.signInWithPassword({
       email,
       password,
     });
@@ -139,7 +145,7 @@ router.post('/admin-login', async (req: Request, res: Response) => {
       return;
     }
 
-    // Verify user is in admin_users table
+    // Verify user is in admin_users table (use service_role client)
     const { data: adminUser, error: adminError } = await supabase
       .from('admin_users')
       .select('*')
@@ -187,7 +193,7 @@ router.put('/admin-password', authenticateAdmin, async (req: AdminRequest, res: 
     }
 
     // Verify current password by re-authenticating
-    const { error: verifyError } = await supabase.auth.signInWithPassword({
+    const { error: verifyError } = await supabaseAuth.auth.signInWithPassword({
       email: req.adminUser!.email,
       password: currentPassword,
     });

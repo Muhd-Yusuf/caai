@@ -1,10 +1,11 @@
 import React from 'react';
+import caaiLogo from '../assets/caai-logo.png';
 
 const Logo: React.FC = () => {
   return (
     <div className="flex items-center">
-      <img 
-        src="https://i.ibb.co/zWjpW88R/oLb64bk.png"
+      <img
+        src={caaiLogo}
         alt="Combat Antisemitism Logo" 
         className="h-12 sm:h-16 flex-shrink-0"
       />

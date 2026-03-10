@@ -5,6 +5,7 @@ import jsPDF from 'jspdf';
 import cameraIcon from '../assets/camera-icon.svg';
 import { compressImage } from '../utils/imageUtils';
 import { api } from '../services/api';
+import StructuredOutput from '../components/StructuredOutput';
 
 Modal.setAppElement('#root');
 
@@ -12,10 +13,10 @@ Modal.setAppElement('#root');
 const sessionId = crypto.randomUUID();
 
 const Detect: React.FC = () => {
-  const [messages, setMessages] = useState<Array<{ content: { type: string, content: string }, isUser: boolean }>>([{
+  const [messages, setMessages] = useState<Array<{ content: { type: string, content: string, fileSize?: string }, isUser: boolean }>>([{
     content: {
       type: 'text',
-      content: 'Hello! I can help you detect antisemitic content in text or images. Please share what you\'d like me to analyze.'
+      content: 'Hello! I can help you detect antisemitic content in text, images, or videos. Please share what you\'d like me to analyze.'
     },
     isUser: false
   }]);
@@ -24,6 +25,7 @@ const Detect: React.FC = () => {
   const [hasInteracted, setHasInteracted] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [rateLimitMessage, setRateLimitMessage] = useState<string | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
 
   const createLoadingElement = () => (
     <div className="flex justify-start mb-4">
@@ -37,9 +39,9 @@ const Detect: React.FC = () => {
     </div>
   );
 
-  const createMessageElement = (message: { type: string; content: string }, isUser: boolean) => (
+  const createMessageElement = (message: { type: string; content: string; fileSize?: string }, isUser: boolean) => (
     <div className={`flex ${isUser ? 'justify-end' : 'justify-start'} mb-4`}>
-      <div className={message.type === 'image' ? 'message-bubble' : `message-bubble rounded-lg p-3 ${
+      <div className={message.type === 'image' || message.type === 'video' ? 'message-bubble' : `message-bubble rounded-lg p-3 ${
         isUser ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-800'
       }`}>
         {message.type === 'image' ? (
@@ -48,10 +50,27 @@ const Detect: React.FC = () => {
             alt="Uploaded content"
             className="uploaded-image shadow-lg hover:shadow-xl transition-shadow duration-300"
           />
-        ) : (
+        ) : message.type === 'video' ? (
+          <div className="relative">
+            <video
+              src={message.content}
+              controls
+              className="uploaded-image shadow-lg hover:shadow-xl transition-shadow duration-300 rounded-lg"
+              style={{ maxWidth: '100%', maxHeight: '300px' }}
+              preload="metadata"
+            />
+            {message.fileSize && (
+              <span className="absolute bottom-2 right-2 bg-black bg-opacity-60 text-white text-xs px-2 py-0.5 rounded">
+                {message.fileSize}
+              </span>
+            )}
+          </div>
+        ) : isUser ? (
           <div className="whitespace-pre-wrap font-sans">
             {message.content}
           </div>
+        ) : (
+          <StructuredOutput content={message.content} />
         )}
       </div>
     </div>
@@ -79,36 +98,70 @@ const Detect: React.FC = () => {
     }
   }, []);
 
-  const processImage = useCallback((file: File) => {
-    // Check file type
-    const allowedTypes = ['image/jpeg', 'image/bmp', 'image/png'];
+  const formatFileSize = (bytes: number): string => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
+  const allowedImageTypes = ['image/jpeg', 'image/bmp', 'image/png'];
+  const allowedVideoTypes = ['video/mp4', 'video/quicktime', 'video/webm'];
+  const allowedTypes = [...allowedImageTypes, ...allowedVideoTypes];
+  const MAX_VIDEO_SIZE = 50 * 1024 * 1024; // 50MB
+
+  const processFile = useCallback((file: File) => {
     if (!allowedTypes.includes(file.type)) {
       setMessages(prev => [...prev, {
-        content: { content: 'Error: Please upload only JPEG, PNG, or BMP images.', type: 'text' },
+        content: { content: 'Error: Please upload JPEG, PNG, BMP images or MP4, MOV, WebM videos.', type: 'text' },
+        isUser: false,
+      }]);
+      return;
+    }
+
+    const isVideo = allowedVideoTypes.includes(file.type);
+
+    if (isVideo && file.size > MAX_VIDEO_SIZE) {
+      setMessages(prev => [...prev, {
+        content: { content: `Error: Video file is too large (${formatFileSize(file.size)}). Maximum size is 50MB.`, type: 'text' },
         isUser: false,
       }]);
       return;
     }
 
     const reader = new FileReader();
+    reader.onprogress = (event) => {
+      if (event.lengthComputable) {
+        setUploadProgress(Math.round((event.loaded / event.total) * 100));
+      }
+    };
     reader.onload = async (event) => {
+      setUploadProgress(null);
       if (event.target?.result) {
-        try {
-          // Compress the image before sending - 60% quality for uploaded files
-          const compressedImage = await compressImage(event.target.result as string, 800, 600, 0.6);
-          sendMessage(compressedImage, 'image');
-        } catch (error) {
-          console.error('Error compressing image:', error);
-          // Fallback to original image if compression fails
-          sendMessage(event.target.result as string, 'image');
+        if (isVideo) {
+          sendMessage(event.target.result as string, 'video', formatFileSize(file.size));
+        } else {
+          try {
+            const compressedImage = await compressImage(event.target.result as string, 800, 600, 0.6);
+            sendMessage(compressedImage, 'image');
+          } catch (error) {
+            console.error('Error compressing image:', error);
+            sendMessage(event.target.result as string, 'image');
+          }
         }
       }
+    };
+    reader.onerror = () => {
+      setUploadProgress(null);
+      setMessages(prev => [...prev, {
+        content: { content: 'Error: Failed to read the file. Please try again.', type: 'text' },
+        isUser: false,
+      }]);
     };
     reader.readAsDataURL(file);
   }, []);
 
-  const sendMessage = async (content: string, type = 'text') => {
-    const message = { content, type };
+  const sendMessage = async (content: string, type = 'text', fileSize?: string) => {
+    const message = { content, type, fileSize };
     setMessages(prev => [...prev, { content: message, isUser: true }]);
     setIsLoading(true);
     toggleInputs(true);
@@ -116,11 +169,13 @@ const Detect: React.FC = () => {
 
     const payload: Record<string, unknown> = {
       sessionId,
-      chatInput: type === 'image' ? 'analyze this image' : content,
+      chatInput: type === 'image' ? 'analyze this image' : type === 'video' ? 'analyze this video' : content,
     };
 
     if (type === 'image') {
       payload.imageData = content;
+    } else if (type === 'video') {
+      payload.videoData = content;
     }
 
     try {
@@ -168,7 +223,7 @@ const Detect: React.FC = () => {
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      processImage(file);
+      processFile(file);
     }
   };
 
@@ -189,7 +244,7 @@ const Detect: React.FC = () => {
     
     const file = e.dataTransfer.files[0];
     if (file) {
-      processImage(file);
+      processFile(file);
     }
   };
 
@@ -200,10 +255,10 @@ const Detect: React.FC = () => {
       if (!items) return;
 
       for (let i = 0; i < items.length; i++) {
-        if (items[i].type.indexOf('image') !== -1) {
+        if (items[i].type.indexOf('image') !== -1 || items[i].type.indexOf('video') !== -1) {
           const file = items[i].getAsFile();
           if (file) {
-            processImage(file);
+            processFile(file);
           }
           break;
         }
@@ -212,7 +267,7 @@ const Detect: React.FC = () => {
 
     window.addEventListener('paste', handlePaste);
     return () => window.removeEventListener('paste', handlePaste);
-  }, [processImage]);
+  }, [processFile]);
 
   const handleShareClick = () => {
     if (hasInteracted) {
@@ -267,7 +322,7 @@ const Detect: React.FC = () => {
     
     pdf.setFontSize(16);
     pdf.setTextColor(255, 255, 255);
-    pdf.text('CAAI - Antisemitism Detection', margin, 15);
+    pdf.text('The ACT (Antisemitism Checker Tool), Created by CAAI', margin, 15);
     
     pdf.setFontSize(10);
     pdf.setTextColor(147, 197, 253); // Blue-100 for subtitle
@@ -368,26 +423,47 @@ const Detect: React.FC = () => {
           yPosition += errorBubbleHeight + 5;
         }
       } else {
-        // Handle text messages
-        const messageText = message.content.content;
-        const wrappedText = wrapText(messageText, messageMaxWidth - 15, 10);
+        // Handle text messages — preserve bold markers, strip other markdown
+        const messageText = message.isUser ? message.content.content : message.content.content
+          .replace(/^#{1,6}\s+/gm, '')       // headers
+          .replace(/\*\*(.+?)\*\*/g, '!!BOLD!!$1!!ENDBOLD!!')  // protect ** bold first
+          .replace(/\*([^*]+?)\*/g, '!!BOLD!!$1!!ENDBOLD!!')   // normalize single * to bold too
+          .replace(/!!BOLD!!/g, '**').replace(/!!ENDBOLD!!/g, '**') // restore as **
+          .replace(/__(.+?)__/g, '**$1**')   // bold alt → normalize to **
+          .replace(/_(.+?)_/g, '$1')         // italic alt
+          .replace(/~~(.+?)~~/g, '$1')       // strikethrough
+          .replace(/`{1,3}([^`]+)`{1,3}/g, '$1') // inline/block code
+          .replace(/^[ \t]*o[ \t]+/gm, '  ')  // strip "o " bullet prefix (PDF artifact)
+          .replace(/^\s*[-*+]\s+/gm, '  - ') // bullet lists
+          .replace(/^\s*\d+\.\s+/gm, (m) => '  ' + m.trim() + ' ') // numbered lists
+          .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // links
+          .replace(/!\[([^\]]*)\]\([^)]+\)/g, '$1') // images
+          .replace(/^>\s+/gm, '')            // blockquotes
+          .replace(/\n{3,}/g, '\n\n');       // excess newlines
+
+        // Strip bold markers for wrapping calculation only
+        const plainText = messageText.replace(/\*\*(.+?)\*\*/g, '$1');
+        const wrappedPlain = wrapText(plainText, messageMaxWidth - 15, 10);
         const lineHeight = 5;
-        const bubbleHeight = wrappedText.length * lineHeight + 20;
-        
+        const bubbleHeight = wrappedPlain.length * lineHeight + 20;
+
+        // Also wrap the text WITH bold markers to render bold segments
+        const wrappedBold = wrapText(messageText, messageMaxWidth - 15, 10);
+
         // Calculate bubble width based on content
         let bubbleWidth = 0;
         pdf.setFontSize(10);
-        for (const line of wrappedText) {
+        for (const line of wrappedPlain) {
           const lineWidth = pdf.getTextWidth(line);
           bubbleWidth = Math.max(bubbleWidth, lineWidth);
         }
         bubbleWidth = Math.min(bubbleWidth + 20, messageMaxWidth);
-        
+
         checkAndAddPage(bubbleHeight + 5);
-        
+
         // Position based on sender (WhatsApp style)
         const bubbleX = isUser ? pageWidth - margin - bubbleWidth : margin;
-        
+
         // Draw message bubble with WhatsApp styling
         if (isUser) {
           pdf.setFillColor(userBubbleColor.r, userBubbleColor.g, userBubbleColor.b);
@@ -397,11 +473,11 @@ const Detect: React.FC = () => {
           pdf.setDrawColor(229, 229, 229);
           pdf.setLineWidth(0.5);
         }
-        
+
         // Draw rounded rectangle
         pdf.roundedRect(bubbleX, yPosition, bubbleWidth, bubbleHeight, 3, 3, isUser ? 'F' : 'FD');
-        
-        // Add message text
+
+        // Add message text with bold support
         pdf.setFontSize(10);
         // Match app text colors
         if (isUser) {
@@ -409,10 +485,27 @@ const Detect: React.FC = () => {
         } else {
           pdf.setTextColor(31, 41, 55); // Gray-800 for AI messages
         }
-        
+
         let textY = yPosition + 10;
-        for (const line of wrappedText) {
-          pdf.text(line, bubbleX + 10, textY);
+        for (const line of wrappedBold) {
+          // Render line with bold segments
+          const segments = line.split(/(\*\*[^*]+\*\*)/g);
+          let xPos = bubbleX + 10;
+          for (const segment of segments) {
+            if (segment.startsWith('**') && segment.endsWith('**')) {
+              // Bold segment
+              const boldText = segment.slice(2, -2);
+              pdf.setFont('helvetica', 'bold');
+              pdf.text(boldText, xPos, textY);
+              xPos += pdf.getTextWidth(boldText);
+              pdf.setFont('helvetica', 'normal');
+            } else if (segment) {
+              // Normal segment
+              pdf.setFont('helvetica', 'normal');
+              pdf.text(segment, xPos, textY);
+              xPos += pdf.getTextWidth(segment);
+            }
+          }
           textY += lineHeight;
         }
         
@@ -446,7 +539,7 @@ const Detect: React.FC = () => {
     
     pdf.setFontSize(9);
     pdf.setTextColor(107, 114, 128); // Gray-500
-    const footerText = 'Generated by CAAI - Combat Antisemitism with AI';
+    const footerText = 'Generated by The ACT (Antisemitism Checker Tool), Created by CAAI';
     const footerWidth = pdf.getTextWidth(footerText);
     pdf.text(footerText, (pageWidth - footerWidth) / 2, yPosition);
 
@@ -488,7 +581,7 @@ const Detect: React.FC = () => {
               The ACT, An AI-Powered Antisemitism Detection Tool
             </h1>
             <p className="text-lg sm:text-xl text-blue-100">
-              Share text or images to analyze potential antisemitic content
+              Share text, images, or videos to analyze potential antisemitic content
             </p>
           </div>
 
@@ -512,11 +605,25 @@ const Detect: React.FC = () => {
               </div>
               
               <div className="border-t bg-gray-50" style={{ padding: '0.75rem' }}>
+                {uploadProgress !== null && (
+                  <div className="mb-2 px-2">
+                    <div className="flex items-center justify-between text-xs text-gray-500 mb-1">
+                      <span>Uploading file...</span>
+                      <span>{uploadProgress}%</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-1.5">
+                      <div
+                        className="bg-blue-500 h-1.5 rounded-full transition-all duration-200"
+                        style={{ width: `${uploadProgress}%` }}
+                      />
+                    </div>
+                  </div>
+                )}
                 <form id="messageForm" className="flex gap-2 sm:gap-3 items-end" onSubmit={handleSubmit}>
                   <textarea 
                     id="messageInput" 
                     className="flex-1 px-3 sm:px-4 py-2 sm:py-3 border rounded-lg focus:outline-none focus:border-blue-500 resize-none overflow-hidden h-20 sm:h-24 placeholder-mobile-adaptive"
-                    placeholder="Type your message or paste an image here, or upload an image using the camera icon..."
+                    placeholder="Type your message, paste an image/video, or upload using the camera icon..."
                     rows={1}
                     style={{
                       fontSize: 'clamp(0.75rem, 3.5vw, 1rem)',
@@ -565,7 +672,7 @@ const Detect: React.FC = () => {
                           type="file" 
                           id="imageInput" 
                           className="hidden" 
-                          accept="image/jpeg,image/bmp,image/png"
+                          accept="image/jpeg,image/bmp,image/png,video/mp4,video/quicktime,video/webm"
                           onChange={handleImageUpload}
                         />
                       </label>

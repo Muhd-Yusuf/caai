@@ -15,7 +15,7 @@ export interface ActSubmission {
   user_id: string;
   session_id: string;
   submitted_at: string;
-  input_type: 'text' | 'image';
+  input_type: 'text' | 'image' | 'video';
 }
 
 export interface AppConfig {

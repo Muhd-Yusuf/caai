@@ -1,11 +1,12 @@
 import React from 'react';
+import heroBg from '../assets/hero-bg.png';
 
 const Hero: React.FC = () => {
   return (
-    <section 
+    <section
       className="pt-20 pb-16 md:pt-32 md:pb-24 text-white relative min-h-screen flex items-center"
       style={{
-        backgroundImage: 'url(https://i.ibb.co/RGkRp5Hw/kfQm5Ee.png)',
+        backgroundImage: `url(${heroBg})`,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         backgroundRepeat: 'no-repeat'

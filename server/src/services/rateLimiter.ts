@@ -35,7 +35,7 @@ export function invalidateCache(): void {
 export async function checkRateLimit(userId: string): Promise<{
   allowed: boolean;
   remaining: number;
-  resetInHours: number;
+  resetInMinutes: number;
 }> {
   const config = await getRateLimitConfig();
 
@@ -47,21 +47,20 @@ export async function checkRateLimit(userId: string): Promise<{
     .single();
 
   if (!user) {
-    return { allowed: false, remaining: 0, resetInHours: 0 };
+    return { allowed: false, remaining: 0, resetInMinutes: 0 };
   }
 
   if (!user.is_active) {
-    return { allowed: false, remaining: 0, resetInHours: 0 };
+    return { allowed: false, remaining: 0, resetInMinutes: 0 };
   }
 
   if (user.is_whitelisted) {
-    return { allowed: true, remaining: Infinity, resetInHours: 0 };
+    return { allowed: true, remaining: Infinity, resetInMinutes: 0 };
   }
 
   // Count submissions in the current window
-  const windowStart = new Date(
-    Date.now() - config.window_hours * 60 * 60 * 1000
-  ).toISOString();
+  const windowMs = config.window_hours * 60 * 60 * 1000;
+  const windowStart = new Date(Date.now() - windowMs).toISOString();
 
   const { count, error } = await supabase
     .from('act_submissions')
@@ -72,24 +71,45 @@ export async function checkRateLimit(userId: string): Promise<{
   if (error) {
     console.error('Rate limit check error:', error);
     // Allow on error to not block users
-    return { allowed: true, remaining: config.max_submissions, resetInHours: 0 };
+    return { allowed: true, remaining: config.max_submissions, resetInMinutes: 0 };
   }
 
   const used = count || 0;
   const remaining = Math.max(0, config.max_submissions - used);
   const allowed = used < config.max_submissions;
 
+  // Calculate exact reset time from the oldest submission in the window
+  let resetInMinutes = 0;
+  if (!allowed) {
+    const { data: oldest } = await supabase
+      .from('act_submissions')
+      .select('submitted_at')
+      .eq('user_id', userId)
+      .gte('submitted_at', windowStart)
+      .order('submitted_at', { ascending: true })
+      .limit(1)
+      .single();
+
+    if (oldest) {
+      const oldestTime = new Date(oldest.submitted_at).getTime();
+      const expiresAt = oldestTime + windowMs;
+      resetInMinutes = Math.max(1, Math.ceil((expiresAt - Date.now()) / 60_000));
+    } else {
+      resetInMinutes = config.window_hours * 60;
+    }
+  }
+
   return {
     allowed,
     remaining,
-    resetInHours: allowed ? 0 : config.window_hours,
+    resetInMinutes,
   };
 }
 
 export async function recordSubmission(
   userId: string,
   sessionId: string,
-  inputType: 'text' | 'image'
+  inputType: 'text' | 'image' | 'video'
 ): Promise<void> {
   await supabase.from('act_submissions').insert({
     user_id: userId,

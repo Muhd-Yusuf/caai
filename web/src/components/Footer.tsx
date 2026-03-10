@@ -47,7 +47,7 @@ const Footer: React.FC = () => {
               <li><a href="#" className="text-white hover:text-blue-300 transition-colors">Partner with Us</a></li>
               <li><a href="#" className="text-white hover:text-blue-300 transition-colors">Donate</a></li>
               <li><a href="#" className="text-white hover:text-blue-300 transition-colors">Licensing</a></li>
-              <li><a href="mailto:jmyers31@gmail.com" className="text-white hover:text-blue-300 transition-colors">Contact Us</a></li>
+              <li><a href="mailto:contact@combatantisemitismwithai.com" className="text-white hover:text-blue-300 transition-colors">Contact Us</a></li>
             </ul>
           </div>
         </div>

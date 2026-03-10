@@ -49,10 +49,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(data.user);
   };
 
-  const logout = () => {
+  const logout = async () => {
+    try {
+      await api.post('/auth/logout', {});
+    } catch {
+      // Clear state even if the request fails
+    }
     setUser(null);
-    // Cookie is HttpOnly so we can't clear it client-side
-    // But clearing state will require re-registration
   };
 
   return (
