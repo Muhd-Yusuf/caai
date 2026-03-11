@@ -39,24 +39,9 @@ export async function checkRateLimit(userId: string): Promise<{
 }> {
   const config = await getRateLimitConfig();
 
-  // Guest users — allow with default rate limit, skip DB user lookup
+  // Guest users — skip rate limiting entirely
   if (userId.startsWith('guest_')) {
-    const windowMs = config.window_hours * 60 * 60 * 1000;
-    const windowStart = new Date(Date.now() - windowMs).toISOString();
-
-    const { count, error } = await supabase
-      .from('act_submissions')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', userId)
-      .gte('submitted_at', windowStart);
-
-    if (error) {
-      return { allowed: true, remaining: config.max_submissions, resetInMinutes: 0 };
-    }
-
-    const used = count || 0;
-    const remaining = Math.max(0, config.max_submissions - used);
-    return { allowed: used < config.max_submissions, remaining, resetInMinutes: 0 };
+    return { allowed: true, remaining: config.max_submissions, resetInMinutes: 0 };
   }
 
   // Check if user is whitelisted
@@ -131,6 +116,9 @@ export async function recordSubmission(
   sessionId: string,
   inputType: 'text' | 'image' | 'video'
 ): Promise<void> {
+  // Skip recording for guest users (no DB row to reference)
+  if (userId.startsWith('guest_')) return;
+
   await supabase.from('act_submissions').insert({
     user_id: userId,
     session_id: sessionId,
