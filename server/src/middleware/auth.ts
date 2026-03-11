@@ -23,3 +23,30 @@ export function authenticateUser(
     res.status(401).json({ error: 'Invalid or expired token' });
   }
 }
+
+/**
+ * Optional auth — if token exists, attach user; otherwise use guest ID from IP.
+ */
+export function optionalAuth(
+  req: AuthenticatedRequest,
+  _res: Response,
+  next: NextFunction
+): void {
+  const token = req.cookies?.caai_token;
+
+  if (token) {
+    try {
+      const payload = jwt.verify(token, config.jwtSecret) as JwtPayload;
+      req.user = payload;
+    } catch {
+      // Invalid token — proceed as guest
+    }
+  }
+
+  if (!req.user) {
+    const ip = req.ip || req.socket.remoteAddress || 'unknown';
+    req.user = { userId: `guest_${ip}`, email: 'guest' };
+  }
+
+  next();
+}

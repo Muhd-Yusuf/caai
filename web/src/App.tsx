@@ -23,14 +23,7 @@ function App() {
             <Header />
             <Routes>
               <Route path="/" element={<Home />} />
-              <Route
-                path="/detect"
-                element={
-                  <ProtectedRoute>
-                    <Detect />
-                  </ProtectedRoute>
-                }
-              />
+              <Route path="/detect" element={<Detect />} />
               <Route path="/register" element={<Register />} />
               <Route path="/how-to-use-act" element={<HowToUseACT />} />
               <Route path="/admin/login" element={<AdminLogin />} />

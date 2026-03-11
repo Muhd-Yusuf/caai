@@ -1,6 +1,6 @@
 import { Router, Response } from 'express';
 import { config } from '../config';
-import { authenticateUser } from '../middleware/auth';
+import { optionalAuth } from '../middleware/auth';
 import { checkRateLimit, recordSubmission } from '../services/rateLimiter';
 import { AuthenticatedRequest } from '../types';
 import { extractFrames } from '../services/videoProcessor';
@@ -25,7 +25,7 @@ async function sendToN8n(payload: Record<string, unknown>): Promise<unknown> {
 }
 
 // POST /api/act/chat — Proxy to n8n webhook with rate limiting
-router.post('/chat', authenticateUser, async (req: AuthenticatedRequest, res: Response) => {
+router.post('/chat', optionalAuth, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const userId = req.user!.userId;
 
