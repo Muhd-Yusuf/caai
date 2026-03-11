@@ -39,6 +39,26 @@ export async function checkRateLimit(userId: string): Promise<{
 }> {
   const config = await getRateLimitConfig();
 
+  // Guest users — allow with default rate limit, skip DB user lookup
+  if (userId.startsWith('guest_')) {
+    const windowMs = config.window_hours * 60 * 60 * 1000;
+    const windowStart = new Date(Date.now() - windowMs).toISOString();
+
+    const { count, error } = await supabase
+      .from('act_submissions')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .gte('submitted_at', windowStart);
+
+    if (error) {
+      return { allowed: true, remaining: config.max_submissions, resetInMinutes: 0 };
+    }
+
+    const used = count || 0;
+    const remaining = Math.max(0, config.max_submissions - used);
+    return { allowed: used < config.max_submissions, remaining, resetInMinutes: 0 };
+  }
+
   // Check if user is whitelisted
   const { data: user } = await supabase
     .from('users')
