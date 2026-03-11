@@ -29,7 +29,7 @@ app.use('/api/admin', adminRoutes);
 
 // Health check
 app.get('/api/health', (_req, res) => {
-  res.json({ status: 'ok' });
+  res.json({ status: 'ok', version: 'v2-guest-access' });
 });
 
 // Error handler
