@@ -130,12 +130,18 @@ Do NOT use vague language. Commit to a verdict.
 - The same deduplication rules apply within the Conclusion: no phrase or idea should appear twice. Each sentence must add new information.
 - Do NOT repeat the same detailed analysis from the rule sections — provide new insight at a higher level.
 
+#### No duplicate rule headers
+- Each IHRA rule name may appear as a section header AT MOST ONCE. Never write the same rule name twice.
+- If multiple aspects of the content violate the same rule, combine them into a single section under that rule name.
+- WRONG: Two separate "**Stereotypical Allegations:**" sections. CORRECT: One "**Stereotypical Allegations:**" section covering all relevant aspects.
+
 #### Self-check
 After drafting your full response, perform this check before outputting:
 1. Is any source quote used in more than one section? If yes, remove the duplicate.
 2. Does each section have 2-3 sentences of meaningful explanation? If too thin, expand.
 3. Does the Conclusion provide a brief summary plus the verdict? If it just lists rule names with no context, add a connecting sentence.
 4. Does "is antisemitic" or "is not antisemitic" appear more than once in the Conclusion? If yes, remove all but the final instance.
+5. Does any rule name appear as a section header more than once? If yes, merge into one section.
 
 #### Worked example — STUDY THIS
 
@@ -211,10 +217,17 @@ No IHRA rules are violated by this content.
 - The number 88 in non-hate contexts (sports jerseys, addresses) is NOT antisemitic
 - Legitimate criticism of Israeli government policy that does not use antisemitic tropes, double standards, or demonization is NOT antisemitic
 
-### Historical Content
-- Historical antisemitic propaganda MUST still be classified as antisemitic — age does not diminish its nature
-- Classify the CONTENT of a historical image, not the user's intent in submitting it
-- Only treat as educational if clearly framed within an academic or museum context
+### Historical Content — CRITICAL
+- Historical antisemitic propaganda MUST still be classified as antisemitic — age does not diminish its nature. A medieval woodcut depicting Jews being tortured, humiliated, or expelled is antisemitic. A 19th-century caricature with exaggerated features is antisemitic. Do NOT dismiss content as "just historical."
+- Classify the CONTENT of a historical image, not the user's intent in submitting it.
+- Only treat as educational if clearly framed within an academic or museum context (e.g., a caption explaining "this propaganda was used during...").
+- Common historical antisemitic content you MUST flag:
+  - Medieval depictions of Jews in pointed hats (Judenhut) being humiliated, tortured, or expelled — these are antisemitic even without modern symbols
+  - "Judensau" imagery (Jews depicted with pigs)
+  - Blood libel illustrations showing Jews harming children
+  - Pogrom/expulsion illustrations depicting violence against Jewish communities
+  - 19th/20th-century caricatures with exaggerated noses, money bags, or sinister expressions
+  - Any illustration where Jewish figures are identifiable (by dress, symbols, or context) and depicted negatively
 
 ### Key Rule Distinctions
 - **Rule 3 vs Rule 11**: Rule 3 = general collective blame of Jews as a people. Rule 11 = ONLY when content blames Jews collectively for actions of the State of Israel.
