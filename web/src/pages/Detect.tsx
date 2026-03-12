@@ -441,14 +441,35 @@ const Detect: React.FC = () => {
           .replace(/^>\s+/gm, '')            // blockquotes
           .replace(/\n{3,}/g, '\n\n');       // excess newlines
 
+        // Detect IHRA verdict for AI messages
+        const isIHRA = !isUser && /Application of IHRA|Applying IHRA|IHRA Rules? Violated|No IHRA rules/i.test(messageText);
+        let verdict: 'antisemitic' | 'not antisemitic' | 'potentially antisemitic' | 'inconclusive' = 'inconclusive';
+        if (isIHRA) {
+          const conclusionMatch = messageText.match(/Conclusion[:\s]*([\s\S]+)/i);
+          if (conclusionMatch) {
+            const conclusion = conclusionMatch[1].toLowerCase();
+            if (/is not antisemitic|does not violate|not antisemitic/.test(conclusion)) verdict = 'not antisemitic';
+            else if (/potentially antisemitic/.test(conclusion)) verdict = 'potentially antisemitic';
+            else if (/antisemitic|violates rdc-ihra|can be considered antisemitic/.test(conclusion)) verdict = 'antisemitic';
+          }
+        }
+
+        // Add spacing before IHRA section headers for readability
+        const spacedText = isIHRA ? messageText.replace(
+          /\n(\*\*(?:Stereotypical Allegations|Collective Blame|Classic Antisemitism Symbols|Harm or Violence|Holocaust Denial|Holocaust Exaggeration|Loyalty Allegations|Right to Self-Determination|Double Standards|Nazi Comparisons|Collective Responsibility|Conclusion):?\*\*)/g,
+          '\n\n$1'
+        ) : messageText;
+
         // Strip bold markers for wrapping calculation only
-        const plainText = messageText.replace(/\*\*(.+?)\*\*/g, '$1');
+        const plainText = spacedText.replace(/\*\*(.+?)\*\*/g, '$1');
         const wrappedPlain = wrapText(plainText, messageMaxWidth - 15, 10);
         const lineHeight = 5;
-        const bubbleHeight = wrappedPlain.length * lineHeight + 20;
+        // Extra height for verdict badge if IHRA
+        const verdictHeight = isIHRA ? 12 : 0;
+        const bubbleHeight = wrappedPlain.length * lineHeight + 20 + verdictHeight;
 
         // Also wrap the text WITH bold markers to render bold segments
-        const wrappedBold = wrapText(messageText, messageMaxWidth - 15, 10);
+        const wrappedBold = wrapText(spacedText, messageMaxWidth - 15, 10);
 
         // Calculate bubble width based on content
         let bubbleWidth = 0;
@@ -477,6 +498,34 @@ const Detect: React.FC = () => {
         // Draw rounded rectangle
         pdf.roundedRect(bubbleX, yPosition, bubbleWidth, bubbleHeight, 3, 3, isUser ? 'F' : 'FD');
 
+        // Add verdict badge for IHRA responses
+        let textY = yPosition + 10;
+        if (isIHRA) {
+          const verdictColors: Record<string, { r: number; g: number; b: number; label: string }> = {
+            'antisemitic': { r: 220, g: 38, b: 38, label: 'Antisemitic' },
+            'potentially antisemitic': { r: 249, g: 115, b: 22, label: 'Potentially Antisemitic' },
+            'not antisemitic': { r: 22, g: 163, b: 74, label: 'Not Antisemitic' },
+            'inconclusive': { r: 107, g: 114, b: 128, label: 'Inconclusive' },
+          };
+          const vc = verdictColors[verdict];
+          // Draw verdict label
+          pdf.setFontSize(7);
+          pdf.setFont('helvetica', 'normal');
+          pdf.setTextColor(107, 114, 128);
+          pdf.text('VERDICT', bubbleX + 10, textY);
+          // Draw verdict pill
+          const pillX = bubbleX + 10 + pdf.getTextWidth('VERDICT') + 3;
+          pdf.setFontSize(8);
+          pdf.setFont('helvetica', 'bold');
+          const pillWidth = pdf.getTextWidth(vc.label) + 8;
+          pdf.setFillColor(vc.r, vc.g, vc.b);
+          pdf.roundedRect(pillX, textY - 4, pillWidth, 6, 2, 2, 'F');
+          pdf.setTextColor(255, 255, 255);
+          pdf.text(vc.label, pillX + 4, textY);
+          pdf.setFont('helvetica', 'normal');
+          textY += verdictHeight;
+        }
+
         // Add message text with bold support
         pdf.setFontSize(10);
         // Match app text colors
@@ -486,8 +535,12 @@ const Detect: React.FC = () => {
           pdf.setTextColor(31, 41, 55); // Gray-800 for AI messages
         }
 
-        let textY = yPosition + 10;
         for (const line of wrappedBold) {
+          // Add extra spacing for empty lines (section breaks)
+          if (line.trim() === '') {
+            textY += 2;
+            continue;
+          }
           // Render line with bold segments
           const segments = line.split(/(\*\*[^*]+\*\*)/g);
           let xPos = bubbleX + 10;
