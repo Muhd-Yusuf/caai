@@ -16,7 +16,7 @@ const Detect: React.FC = () => {
   const [messages, setMessages] = useState<Array<{ content: { type: string, content: string, fileSize?: string }, isUser: boolean }>>([{
     content: {
       type: 'text',
-      content: 'Hello! I can help you detect antisemitic content in text, images, or videos. Please share what you\'d like me to analyze.'
+      content: 'Hello! I can help you detect antisemitic content in text, images, or videos. Please share what you\'d like me to analyze.\n\nYou may also ask me questions or direct me to expand my response. For example: Expand on the topic in relation to the last image analyzed.'
     },
     isUser: false
   }]);
@@ -762,15 +762,15 @@ const Detect: React.FC = () => {
                       setMessages([{
                         content: {
                           type: 'text',
-                          content: 'Hello! I can help you detect antisemitic content in text, images, or videos. Please share what you\'d like me to analyze.'
+                          content: 'Hello! I can help you detect antisemitic content in text, images, or videos. Please share what you\'d like me to analyze.\n\nYou may also ask me questions or direct me to expand my response. For example: Expand on the topic in relation to the last image analyzed.'
                         },
                         isUser: false
                       }]);
                       setHasInteracted(false);
                     }}
-                    className="text-xs sm:text-sm text-gray-500 hover:text-gray-700 px-2 py-1 rounded transition-colors"
+                    className="bg-gray-200 hover:bg-gray-300 text-gray-600 text-xs sm:text-sm px-3 py-1.5 rounded-lg transition-colors"
                   >
-                    Clear
+                    Clear all
                   </button>
                 </div>
               </div>

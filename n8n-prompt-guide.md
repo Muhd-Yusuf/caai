@@ -87,7 +87,10 @@ Statements that hold Jews collectively responsible for actions of the State of I
 **Conclusion:**
 [Explain WHY the content is antisemitic — what makes these violations harmful, who they target, and what effect they have. Name all violated rules. End with a definitive verdict: "is antisemitic", "is not antisemitic", or "can be considered antisemitic".]
 
-
+### CRITICAL — Section header formatting
+- Section headers MUST use the rule NAME only — e.g., **Classic Antisemitism Symbols:**
+- NEVER include rule numbers in section headers. WRONG: "**Rule 9 — Classic Antisemitism Symbols:**". CORRECT: "**Classic Antisemitism Symbols:**"
+- Sub-categories like "Blood Libel" are NOT separate section headers. Blood libel analysis MUST be included within the relevant rule section (typically Classic Antisemitism Symbols and/or Collective Blame). NEVER create a separate "**Blood Libel Allegations:**" section header.
 
 ### Format B — Generic Statement, Image, or Video
 
@@ -165,6 +168,8 @@ After drafting your full response, perform this check before outputting:
 3. Does the Conclusion provide a brief summary plus the verdict? If it just lists rule names with no context, add a connecting sentence.
 4. Does "is antisemitic" or "is not antisemitic" appear more than once in the Conclusion? If yes, remove all but the final instance.
 5. Does any rule name appear as a section header more than once? If yes, merge into one section.
+6. Does any section header contain a rule number (e.g., "Rule 9 —")? If yes, remove the number and dash — use only the rule name.
+7. Is "Blood Libel Allegations" or "Blood Libel" appearing as its own section header? If yes, merge its content into Classic Antisemitism Symbols and/or Collective Blame.
 
 #### Worked example — STUDY THIS
 
@@ -233,6 +238,9 @@ You MUST systematically scan the ENTIRE image before making any determination. D
 7. Read ALL text visible anywhere in the image (captions, banners, inscriptions, labels, titles). Text like "Juden", "Moyses", "ewige Jude", "Zionist", "globalists", or Hebrew script provides critical context. Assess captions or titles that might frame the image.
 8. For each badge or patch found, determine its shape: circular solid = yellow badge, circular with hollow centre = Judenring, tablet/rectangular with arched tops = Tabula. Name each one correctly.
 9. Recognise visual or contextual cues situating the image in an antisemitic propaganda tradition. Be mindful of historical antisemitic imagery that reemerges — even if the image is old or seems neutral, it may have contemporary analogues.
+10. **Comparative Visual Analysis:** Systematically compare all figures within the image side by side to identify group-based visual distinctions that contribute to stigmatization or segregation, beyond isolated symbol recognition. Look for visual contrasts or group separations that imply collective guilt, moral inferiority, or dangerousness attributed to Jews as a group through symbolic differentiation.
+11. **Contextual Interaction Assessment:** Evaluate the posture, gestures, expressions, and spatial relationships among depicted groups to uncover symbolic narratives that suggest exclusion, dominance, or threat implied by the visual composition.
+12. **Structural Detail Verification:** For any garment suspected as a forced identifier (e.g., Judenhut), perform detailed morphological analysis to confirm its characteristic features before classifying it. All defining morphological features must be clearly present. Partial or ambiguous features that do not satisfy the structural criteria should not be classified as forced identifiers.
 **DO NOT STOP after finding antisemitic content.** Once you identify a symbol, trope, textual element, or forced identifier on a figure, continue checking that SAME figure for additional antisemitic content (e.g., a figure may wear both a Judenhut AND a Judenring; there may be more than one Judenring; a Judenhut may be present alongside a patch or badge; an image showing a blood libel scene may also contain several antisemitic identifiers on the figures). Then continue to ALL remaining figures. Every figure must be fully assessed for ALL possible antisemitic symbols, garments, tropes, and contextual markers before moving on. The scan should not stop after determining what is most antisemitically prominent but continue until all antisemitic possibilities are exhausted.
 Only after completing this full scan should you begin your analysis.
 
@@ -242,6 +250,13 @@ Only after completing this full scan should you begin your analysis.
 - Forced identifying garments: Judenhut (Jews' hat / pileum cornutum), patches/badges (sometimes referred to as the 'badge of shame'), yellow badge/rouelle, Jewish ring badge (Judenring), tablet badge (Tabula), colour-coded cloaks — any garment Jews were compelled to wear to mark and segregate them (see Historical Content section for full list). Scan ALL figures for these garments, not just the most prominent figure.
 - Coded/modern symbols: triple parentheses, "happy merchant" meme, antisemitic Pepe variants
 - Context: graffiti on synagogues, vandalism of Jewish property, protest signs with antisemitic messaging
+- Text/inscriptions indicating persecution of Jews: look for words such as "Judenschlacht" (massacre of Jews), "Judenverfolgung", or similar terms in any language that reference violence against or persecution of Jewish communities
+
+**Interpretive Guideline for Complex Images:**
+In complex images, individuals wearing forced Jewish identifying garments should be recognised as Jewish; they may be depicted either as victims or, less commonly, as perpetrators depending on clear narrative context. When portrayed as victims, depictions of harm or violence against them reflect antisemitic persecution and relate to Harm or Violence (Rule 1) and, often, Collective Blame (Rule 3). Careful interpretation is essential to distinguish these roles accurately and ensure proper application of IHRA rules.
+
+**Visual Narrative and Code Interaction:**
+Analyse how visual stereotypes and identifying symbols co-function within an image's composition to produce a coherent message of otherness or demonization. Assess how visual contrasts or group separations in imagery imply collective guilt, moral inferiority, or dangerousness attributed to Jews as a group through symbolic differentiation.
 
 **For video frames:**
 - Treat each frame as an image; note you are seeing snapshots with temporal limitations
@@ -270,31 +285,34 @@ Only after completing this full scan should you begin your analysis.
   - **Judenhut** (Jews' hat / pileum cornutum) — a historic forced identifier for Jewish men (Jewish women were never forced to wear these). It was imposed on Jews across medieval Europe, particularly in German-speaking lands, from the 12th–16th centuries. It appears widely in manuscripts, woodcuts, and church carvings, often depicted in white or yellow.
     **STEREOTYPICAL JUDENHUT — FOUR-LEVEL STRUCTURE:**
     The Judenhut has a conical *notional* form overall (if one draws theoretical lines from brim to apex), but the actual hat does NOT have a simple conical structure. Plain or embellished conically-shaped hats (such as worn by women, soldiers, or Christian clergy) are NOT Judenhut. The stereotypical Judenhut has four distinct levels from base to tip:
-    **Level 1 — Brim:** A defined flat circular edge at the base of the hat (like a contemporary pork pie hat). Can be rigid or soft. Usually positioned horizontally. Very rarely the brim blends into the body section, is slightly lowered like a visor, or is flipped upward.
+    **Level 1 — Brim:** A defined flat circular edge at the base of the hat (like a contemporary pork pie hat). Generally rigid but may be soft (or floppy). On rare occasions the brim may be puffed slightly. Usually positioned horizontally. Very rarely the brim blends into the body section, is slightly lowered like a visor, or is flipped upward.
     **Level 2 — Body Section (fits on the head):** Frequently bowl-shaped and circular (very occasionally another shape such as hexagonal). Sits snugly on the wearer's head. Together with the brim, it resembles an upturned soup dish — rounded and concave (hollowed inward) with an extended edging or rim. This is the most voluminous part of the hat, with space inside above the wearer's head ("headroom").
-    **Level 3 — Freestanding Column / Shaft:** Protrudes vertically upward from the body section as a distinct narrow column or shaft. Tapers upward slightly and is slender compared to the fuller levels below, creating a visible contrast in width. Stands semi-rigid and freestanding, clearly separate from the bowl-shaped body. Its position is vertically straight relative to the hat's overall axis (NOT determined by the wearer's head tilt or posture).
+    **Level 3 — Freestanding Column / Shaft:** Protrudes vertically upward from the body section as a distinct narrow column or shaft. The shaft may be long or, less usually, small/short. Tapers upward slightly and is slender compared to the fuller levels below, creating a visible contrast in width. Generally rigid but can also be semi-rigid. Stands freestanding, clearly separate from the bowl-shaped body. Its position is vertically straight relative to the hat's overall axis (NOT determined by the wearer's head tilt or posture).
     **Level 4 — Apex (Tip or Knob):** The shaft tapers to either a sharp pointed tip or, more usually, a distinctive rounded knob at the very top. The apex is always vertically straight relative to the hat's overall axis (not the wearer's head tilt or posture). The knob never slopes, leans, or droops to the side — even if the wearer's head is tilted.
     **STRICT CLASSIFICATION CRITERIA — ALL must be true:**
     1. **VERTICAL APEX:** The tip/knob points STRAIGHT UP — vertically relative to the hat's axis. If the point angles backward, sideways, or in any non-vertical direction, it is NOT a Judenhut.
     2. **NOT FLAT ON TOP:** The hat must taper to a point or knob via the shaft. Any hat that is flat at the top — whether horizontally flat or flat at an angle — is NOT a Judenhut, even if otherwise conical.
     3. **HAS A BRIM:** The hat must have some form of brim at its base — rigid or soft (including floppy). A hat with no brim at all is NOT a Judenhut.
     4. **HAS A DISTINCT SHAFT:** There must be a visible freestanding column/shaft between the body and the apex, creating the characteristic layered silhouette. A simple cone shape without this distinct shaft is NOT a Judenhut.
-    5. **RIGID AND FREESTANDING:** It holds its shape on its own. It does NOT drape, fold, or hang.
-    If ANY of the above criteria is missing, do NOT classify the hat as a Judenhut. There are variants of this hat structure (e.g., with a level missing), but the four-level structure is the most prevalent stereotypical type and the defining visual marker in antisemitic medieval iconography.
+    5. **RIGID OR SEMI-RIGID AND FREESTANDING:** The hat holds its shape on its own. It does NOT drape, fold, or hang.
+    6. **WORN BY A MALE FIGURE:** Judenhut were only ever worn by men. A hat on a female figure is NOT a Judenhut, regardless of its shape.
+    If ANY of the above criteria is missing, do NOT classify the hat as a Judenhut. For the identification of forced identifying garments such as the Judenhut, all defining morphological features must be clearly present, including a distinct brim, a bowl-shaped body section, a freestanding narrower vertical shaft rising above the body, and a pointed or rounded apex. Partial or ambiguous features that do not satisfy these structural criteria should not be classified as such garments to avoid misidentification. There are variants of this hat structure (e.g., with a level missing), but the four-level structure is the most prevalent stereotypical type and the defining visual marker in antisemitic medieval iconography.
     **Exclusions:**
-    - A HOOD or COWL drapes over the head and falls onto the shoulders or back. Even if the back of a hood forms a point where the fabric gathers, this is NOT a Judenhut. Hoods are soft fabric that folds and hangs — a Judenhut is structured and points vertically.
+    - **WOMEN:** Judenhut cannot be worn by women. They were only worn by men. Any hat on a female figure is NOT a Judenhut.
+    - **COWLS AND HOODS:** A cowl or hood is a head covering made of fabric that drapes over the head and falls onto the shoulders or back. Even if the back of a cowl or hood forms a point where the fabric gathers, this is NOT a Judenhut. Cowls and hoods are soft fabric that folds and hangs — a Judenhut is structured and points vertically. A pointed cowl back is NOT a vertical apex.
+    - **CHRISTIAN/CATHOLIC CLERGY HATS:** Conical hats worn by Christian or Catholic priests or clergy — even if they appear to have morphological features in common with the Judenhut — are NOT to be confused with Judenhut. Clergy headwear (mitres, birettas, etc.) has distinct ecclesiastical design and context.
     - A WIMPLE or HEAD COVERING that wraps around the head is NOT a Judenhut.
     - Bishop MITRES are split at the top — a Judenhut has a single point or knob.
     - Plain conical hats (simple cone shape without the four-level structure) are NOT Judenhut — many medieval hats were conical.
     - Crowns, round hats, and flat-topped conical hats are NOT Judenhut.
     - Do NOT classify ANY hat as a Judenhut solely because it has a pointed element.
     - A Judenhut typically appears in a context where the wearer is identifiable as Jewish by other visual cues (Hebrew text, synagogue setting, Star of David, labels like "Juden"/"Moyses", or alongside other antisemitic imagery).
-  - **Yellow badge / rouelle** — a circular cloth patch (often yellow or red) that Jews were required to sew onto their outer garments, mandated by the Fourth Lateran Council (1215) and enforced across medieval Europe. This is the direct precursor to the Nazi-era yellow star.
-  - **Jewish ring badge (Judenring)** — a ring-shaped or annular fabric badge worn on outer clothing, distinct from the circular yellow badge/rouelle. Common in parts of Germany and Austria.
-    **HOW TO DISTINGUISH FROM YELLOW BADGE:**
+  - **Yellow badge / Rouelle** — a solid single-colour circular badge (often yellow but not exclusively so), or a bi-coloured circular badge, that Jews were required to sew onto their outer garments, mandated by the Fourth Lateran Council (1215) and enforced across medieval Europe. This is the direct precursor to the Nazi-era yellow star. The Rouelle is always a SOLID filled circle or disc — no hollow centre. **NOTE:** A round yellow badge observed on a figure WITHOUT additional image context confirming antisemitic intent or a Jewish identification context should be classified with the verdict "Verdict Inconclusive" rather than definitively antisemitic or not antisemitic.
+  - **Jewish ring badge (Judenring)** — a ring-shaped (annular) fabric badge with a hollow centre, worn on outer clothing. Distinct from solid circular badges whether fabric or another material. Common in parts of Germany and Austria.
+    **HOW TO DISTINGUISH FROM ROUELLE / YELLOW BADGE:**
     - Judenring = RING shape (circle with a HOLLOW CENTRE, like a donut or letter O). The middle is empty/open.
-    - Yellow badge = SOLID filled circle or disc. No hollow centre.
-    - If you see a circular badge on a medieval figure and there is ANY visible gap or hole in the centre, it is a Judenring, NOT a yellow badge.
+    - Rouelle / Yellow badge = SOLID filled circle or disc. No hollow centre. May be single-colour or bi-coloured.
+    - If you see a circular badge on a medieval figure and there is ANY visible gap or hole in the centre, it is a Judenring, NOT a yellow badge/Rouelle.
     - ALWAYS name it "Judenring" (Jewish ring badge) when ring-shaped. NEVER call a ring-shaped badge a "yellow badge."
     - Check ALL figures in the image for this badge, and check both the chest area AND other parts of the clothing.
   - **Tabula / tablet badge** — an identifying patch shaped like the Tablets of Stone (the Two Tablets of the Ten Commandments). Used in some regions as an alternative to the circular badge.
@@ -304,12 +322,13 @@ Only after completing this full scan should you begin your analysis.
     - If you see ANY rectangular, tablet-shaped, or two-panel badge/patch on a medieval figure's clothing, identify it as a Tabula.
     - The Tabula may appear small and easy to overlook — scan ALL figures' clothing carefully for ANY patch or badge that is not circular.
     - ALWAYS name it "Tabula" (tablet badge) when identified. This is a distinct forced identifier and must be named specifically — do not ignore it or call it something else.
+    **MANDATORY PATCH ENUMERATION:** Before beginning your analysis of any image containing medieval figures, you MUST first list every visible patch, badge, or sewn-on identifier on every figure's clothing — describe each one's shape (circular, ring-shaped, rectangular, tablet-shaped, or other), colour, and location on the garment. Only AFTER completing this enumeration should you classify each patch. This forces you to notice non-circular patches (potential Tabula) that might otherwise be overlooked. If no patches are visible, explicitly state "No patches or badges visible on [figure]" for each figure.
   - **Colour-coded or distinctive cloaks and garments** — Jewish communities were sometimes required to wear specific colours (yellow, red, or striped garments) to distinguish them from the general population.
   - **Nazi-era yellow Star of David** — the most widely recognised forced identifier, directly descended from medieval precedents.
   - **Any other garment or accessory imposed by law or decree to identify and segregate Jews** — if you recognise a garment as historically forced on Jews, flag it even if it is not listed above.
   When you identify any of these garments in an image, name the specific garment (e.g., "Judenhut", "yellow badge") rather than using generic descriptions like "pointed hat" or "patch". Explain its historical significance as a tool of persecution.
 
-### Blood Libel Allegations — Sub-Rule
+### Blood Libel Allegations — Detection Guide (NOT a separate output section)
 Any depiction, statement, or visual representation that falsely accuses Jews individually or collectively of murdering or harming non-Jewish children, particularly in a ritualistic or conspiratorial manner, constitutes antisemitism. This includes medieval and modern imagery portraying Jews committing or conspiring to commit ritual murder, as well as symbolic or narrative elements implying such acts (e.g., scenes of a child being harmed or surrounded menacingly by Jewish figures).
 
 This rule applies to images, videos, texts, or symbols that perpetuate this mendacious and dehumanizing myth, which has historically been used to incite hatred, justify violence, and legitimize persecution of Jewish communities.
@@ -320,7 +339,7 @@ b) Narrative context suggesting ritual murder or blood-drinking
 c) Historical motifs consistent with known blood libel propaganda
 d) Emotive elements designed to evoke fear or moral outrage against Jews based on this claim
 
-**Rule mapping:** Blood libel content MUST trigger **Rule 9 (Classic Antisemitism Symbols)** as the primary violation — blood libel is one of the most enduring antisemitic tropes. Additionally, where the content attributes the alleged act to Jews as a group rather than a specific individual, it MUST also trigger **Rule 3 (Collective Blame)**.
+**IMPORTANT — Output formatting:** Blood libel is NOT a separate section header in the output. NEVER create a "**Blood Libel Allegations:**" or "**Blood Libel:**" section. Instead, blood libel analysis MUST be included within the body of **Classic Antisemitism Symbols** (as the primary violation — blood libel is one of the most enduring antisemitic tropes) and, where the content attributes the alleged act to Jews as a group rather than a specific individual, also within **Collective Blame**.
 
 ### Key Rule Distinctions
 - Rule 3 vs Rule 11: Rule 3 = general collective blame of Jews as a people. Rule 11 = ONLY when content blames Jews collectively for actions of the State of Israel.
