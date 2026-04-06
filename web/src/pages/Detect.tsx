@@ -755,7 +755,7 @@ const Detect: React.FC = () => {
                     </div>
                   </div>
                 </form>
-                <div className="flex justify-start mt-1">
+                <div className="flex justify-start mt-1 gap-2">
                   <button
                     type="button"
                     onClick={() => {
@@ -771,6 +771,21 @@ const Detect: React.FC = () => {
                     className="bg-gray-200 hover:bg-gray-300 text-gray-600 text-xs sm:text-sm px-3 py-1.5 rounded-lg transition-colors"
                   >
                     Clear all
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMessages(prev => {
+                        if (prev.length <= 1) return prev;
+                        // Remove last 2 messages (last user input + last ACT response),
+                        // but never remove the initial welcome message (index 0)
+                        const trimmed = prev.slice(0, -2);
+                        return trimmed.length >= 1 ? trimmed : prev.slice(0, 1);
+                      });
+                    }}
+                    className="bg-gray-200 hover:bg-gray-300 text-gray-600 text-xs sm:text-sm px-3 py-1.5 rounded-lg transition-colors"
+                  >
+                    Clear last
                   </button>
                 </div>
               </div>
