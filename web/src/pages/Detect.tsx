@@ -450,6 +450,7 @@ const Detect: React.FC = () => {
             const conclusion = conclusionMatch[1].toLowerCase();
             if (/is not antisemitic|does not violate|not antisemitic/.test(conclusion)) verdict = 'not antisemitic';
             else if (/potentially antisemitic/.test(conclusion)) verdict = 'potentially antisemitic';
+            else if (/verdict inconclusive|is inconclusive|status is.*inconclusive|inconclusive/.test(conclusion)) verdict = 'inconclusive';
             else if (/antisemitic|violates rdc-ihra|can be considered antisemitic/.test(conclusion)) verdict = 'antisemitic';
           }
         }

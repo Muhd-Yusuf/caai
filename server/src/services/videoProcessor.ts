@@ -7,8 +7,8 @@ import * as crypto from 'crypto';
 
 ffmpeg.setFfmpegPath(ffmpegInstaller.path);
 
-const FRAME_INTERVAL_SECONDS = 5;
-const MAX_FRAMES = 12;
+const MAX_FRAMES = 6;          // max frames to extract
+const MIN_INTERVAL_SECONDS = 3; // minimum gap between frames
 
 interface ExtractedFrame {
   base64: string;
@@ -79,16 +79,14 @@ export async function extractFrames(videoDataUrl: string): Promise<ExtractedFram
       throw new Error('Could not determine video duration');
     }
 
-    // Calculate timestamps to sample
+    // Distribute frames evenly across the video, capped at MAX_FRAMES.
+    // Skip the last 3 seconds to avoid trailing logo/end-cards (e.g. TikTok logo).
+    const usableDuration = Math.max(duration - 3, 1);
+    const frameCount = Math.min(MAX_FRAMES, Math.max(1, Math.floor(usableDuration / MIN_INTERVAL_SECONDS)));
+    const interval = usableDuration / frameCount;
     const timestamps: number[] = [];
-    for (let t = 0; t < duration; t += FRAME_INTERVAL_SECONDS) {
-      timestamps.push(t);
-      if (timestamps.length >= MAX_FRAMES) break;
-    }
-
-    // Always include at least one frame
-    if (timestamps.length === 0) {
-      timestamps.push(0);
+    for (let i = 0; i < frameCount; i++) {
+      timestamps.push(Math.min(i * interval, usableDuration));
     }
 
     const tmpDir = path.join(os.tmpdir(), 'caai-video', 'frames');

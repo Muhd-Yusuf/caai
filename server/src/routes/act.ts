@@ -62,45 +62,26 @@ router.post('/chat', optionalAuth, async (req: AuthenticatedRequest, res: Respon
         return;
       }
 
-      // Send each frame to n8n for analysis
-      const frameResults: string[] = [];
+      // Send all frames in a single n8n request for one consolidated analysis
+      const videoPayload: Record<string, unknown> = {
+        action: 'sendMessage',
+        sessionId: sessionId || 'unknown',
+        chatInput: `Analyze this video for antisemitic content. I am providing ${frames.length} frames sampled from the video at timestamps: ${frames.map(f => `${Math.round(f.timestamp)}s`).join(', ')}. Treat all frames as a single video and produce ONE combined IHRA analysis covering all antisemitic content found across the entire video. Do not give a separate analysis per frame — give a single response in the standard IHRA output format.`,
+        files: frames.map((frame, i) => ({
+          fileName: `frame_${i + 1}_at_${Math.round(frame.timestamp)}s.jpg`,
+          fileSize: `${Math.round(frame.base64.length * 0.75 / 1024)} KB`,
+          fileType: 'image',
+          mimeType: 'image/jpeg',
+          fileExtension: 'jpeg',
+          binaryKey: frame.base64,
+        })),
+      };
 
-      for (let i = 0; i < frames.length; i++) {
-        const frame = frames[i];
-        const framePayload: Record<string, unknown> = {
-          action: 'sendMessage',
-          sessionId: sessionId || 'unknown',
-          chatInput: i === 0
-            ? `analyze this video. This is frame ${i + 1} of ${frames.length}, captured at ${frame.timestamp}s.`
-            : `continue video analysis. Frame ${i + 1} of ${frames.length}, captured at ${frame.timestamp}s.`,
-          files: [{
-            fileName: `frame_${i + 1}.jpg`,
-            fileSize: `${Math.round(frame.base64.length * 0.75 / 1024)} KB`,
-            fileType: 'image',
-            mimeType: 'image/jpeg',
-            fileExtension: 'jpeg',
-            binaryKey: frame.base64,
-          }],
-        };
-
-        try {
-          const frameData = await sendToN8n(framePayload) as { output?: string };
-          if (frameData?.output) {
-            frameResults.push(`**Frame ${i + 1} (${frame.timestamp}s):**\n${frameData.output}`);
-          }
-        } catch (err) {
-          console.error(`Error analyzing frame ${i + 1}:`, err);
-          frameResults.push(`**Frame ${i + 1} (${frame.timestamp}s):** Analysis failed.`);
-        }
-      }
-
-      // Build combined output
-      const combinedOutput = frameResults.length > 0
-        ? `## Video Analysis Results\n\nAnalyzed ${frames.length} frame(s) from the video.\n\n${frameResults.join('\n\n---\n\n')}`
-        : 'Could not analyze any frames from the video.';
+      const videoData_ = await sendToN8n(videoPayload) as { output?: string };
+      const output = videoData_?.output || 'Could not analyze the video.';
 
       await recordSubmission(userId, sessionId || 'unknown', 'video');
-      res.json({ output: combinedOutput });
+      res.json({ output });
       return;
     }
 

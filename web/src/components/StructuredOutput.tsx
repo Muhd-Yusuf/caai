@@ -17,12 +17,17 @@ function extractVerdict(content: string): Verdict {
 
   const conclusion = conclusionMatch[1].toLowerCase();
 
-  // Order matters: check "not antisemitic" before "antisemitic"
+  // Order matters: check specific cases before broad "antisemitic" match,
+  // and check "inconclusive" before "antisemitic" to avoid false positives
+  // when the conclusion contains the word "antisemitic" in an inconclusive context.
   if (/is not antisemitic|does not violate|not antisemitic/.test(conclusion)) {
     return 'not antisemitic';
   }
   if (/potentially antisemitic/.test(conclusion)) {
     return 'potentially antisemitic';
+  }
+  if (/verdict inconclusive|is inconclusive|status is.*inconclusive|inconclusive/.test(conclusion)) {
+    return 'inconclusive';
   }
   if (/antisemitic|violates rdc-ihra|can be considered antisemitic/.test(conclusion)) {
     return 'antisemitic';
@@ -201,7 +206,7 @@ const StructuredOutput: React.FC<{ content: string }> = ({ content }) => {
       <div className="space-y-3">
         {/* Verdict badge */}
         <div className="flex items-center gap-2">
-          <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Verdict</span>
+          <span className="text-xs font-medium text-gray-700 uppercase tracking-wide">Verdict</span>
           <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold ${style.bg} ${style.text}`}>
             {style.label}
           </span>
