@@ -61,6 +61,7 @@ const Detect: React.FC = () => {
               className="uploaded-image shadow-lg hover:shadow-xl transition-shadow duration-300 rounded-lg"
               style={{ maxWidth: '100%', maxHeight: '300px' }}
               preload="auto"
+              onLoadedMetadata={(e) => { (e.target as HTMLVideoElement).play().catch(() => {}); }}
             />
             {message.fileSize && (
               <span className="absolute bottom-2 right-2 bg-black bg-opacity-60 text-white text-xs px-2 py-0.5 rounded">
