@@ -206,7 +206,7 @@ const StructuredOutput: React.FC<{ content: string }> = ({ content }) => {
       <div className="space-y-3">
         {/* Verdict badge */}
         <div className="flex items-center gap-2">
-          <span className="text-xs font-medium text-gray-700 uppercase tracking-wide">Verdict</span>
+          <span className="text-xs font-medium text-gray-900 uppercase tracking-wide">Verdict</span>
           <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold ${style.bg} ${style.text}`}>
             {style.label}
           </span>
