@@ -7,7 +7,7 @@ import * as crypto from 'crypto';
 
 ffmpeg.setFfmpegPath(ffmpegInstaller.path);
 
-const MAX_FRAMES = 6;          // max frames to extract
+const MAX_FRAMES = 3;          // max frames to extract (keeps n8n processing within cloud timeout)
 const MIN_INTERVAL_SECONDS = 3; // minimum gap between frames
 
 interface ExtractedFrame {
