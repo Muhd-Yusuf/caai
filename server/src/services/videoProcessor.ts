@@ -7,8 +7,8 @@ import * as crypto from 'crypto';
 
 ffmpeg.setFfmpegPath(ffmpegInstaller.path);
 
-const MAX_FRAMES = 3;          // max frames to extract (keeps n8n processing within cloud timeout)
-const MIN_INTERVAL_SECONDS = 3; // minimum gap between frames
+const MAX_FRAMES = 2;           // max frames to extract (keeps n8n processing within cloud timeout)
+const MIN_INTERVAL_SECONDS = 5; // minimum gap between frames — wider spacing = better coverage
 
 interface ExtractedFrame {
   base64: string;
@@ -57,7 +57,8 @@ function extractFrameAt(filePath: string, timestamp: number, outputPath: string)
     ffmpeg(filePath)
       .seekInput(timestamp)
       .frames(1)
-      .outputOptions(['-q:v', '5'])
+      .size('480x?')          // scale to 480px wide, maintain aspect ratio — reduces payload ~75%
+      .outputOptions(['-q:v', '8']) // JPEG quality 8 — sharp enough for vision model, smaller file
       .output(outputPath)
       .on('end', () => resolve())
       .on('error', (err) => reject(err))
