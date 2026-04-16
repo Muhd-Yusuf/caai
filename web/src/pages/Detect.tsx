@@ -61,7 +61,7 @@ const Detect: React.FC = () => {
               className="uploaded-image shadow-lg hover:shadow-xl transition-shadow duration-300 rounded-lg"
               style={{ maxWidth: '100%', maxHeight: '300px' }}
               preload="auto"
-              onLoadedMetadata={(e) => { (e.target as HTMLVideoElement).play().catch(() => {}); }}
+              onCanPlay={(e) => { (e.target as HTMLVideoElement).play().catch(() => {}); }}
             />
             {message.fileSize && (
               <span className="absolute bottom-2 right-2 bg-black bg-opacity-60 text-white text-xs px-2 py-0.5 rounded">
@@ -343,7 +343,69 @@ const Detect: React.FC = () => {
       // Check if we need a new page for message container
       checkAndAddPage(40);
 
-      if (message.content.type === 'image') {
+      if (message.content.type === 'video') {
+        // Capture a thumbnail from the first frame and render it as an image in the PDF
+        try {
+          const thumbDataUrl = await new Promise<string>((resolve, reject) => {
+            const vid = document.createElement('video');
+            vid.muted = true;
+            vid.preload = 'metadata';
+            vid.src = message.content.content;
+            vid.currentTime = 0.5;
+            vid.onloadeddata = () => {
+              const canvas = document.createElement('canvas');
+              canvas.width = vid.videoWidth || 480;
+              canvas.height = vid.videoHeight || 270;
+              const ctx = canvas.getContext('2d');
+              if (!ctx) return reject(new Error('canvas context unavailable'));
+              ctx.drawImage(vid, 0, 0, canvas.width, canvas.height);
+              resolve(canvas.toDataURL('image/jpeg', 0.8));
+            };
+            vid.onerror = reject;
+          });
+
+          const img = new Image();
+          await new Promise((resolve, reject) => { img.onload = resolve; img.onerror = reject; img.src = thumbDataUrl; });
+
+          const maxImageWidth = messageMaxWidth - 10;
+          const maxImageHeight = 100;
+          const ratio = Math.min(maxImageWidth / img.width, maxImageHeight / img.height, 1);
+          const imgWidth = img.width * ratio;
+          const imgHeight = img.height * ratio;
+          const bubbleWidth = imgWidth + 10;
+          const bubbleHeight = imgHeight + 22; // extra for label
+
+          checkAndAddPage(bubbleHeight + 10);
+          const bubbleX = isUser ? pageWidth - margin - bubbleWidth : margin;
+          pdf.setFillColor(userBubbleColor.r, userBubbleColor.g, userBubbleColor.b);
+          pdf.roundedRect(bubbleX, yPosition, bubbleWidth, bubbleHeight, 3, 3, 'F');
+          pdf.addImage(thumbDataUrl, bubbleX + 5, yPosition + 5, imgWidth, imgHeight);
+
+          // Label below thumbnail
+          pdf.setFontSize(7);
+          pdf.setFont('helvetica', 'normal');
+          pdf.setTextColor(219, 234, 254);
+          const label = message.content.fileSize ? `▶ Video  ${message.content.fileSize}` : '▶ Video';
+          pdf.text(label, bubbleX + 5, yPosition + 5 + imgHeight + 7);
+
+          pdf.setFontSize(8);
+          const timeWidth2 = pdf.getTextWidth(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+          pdf.text(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), bubbleX + bubbleWidth - timeWidth2 - 5, yPosition + bubbleHeight - 3);
+
+          yPosition += bubbleHeight + 5;
+        } catch {
+          // Fallback: just show a placeholder
+          const bw = messageMaxWidth;
+          const bh = 20;
+          const bx = isUser ? pageWidth - margin - bw : margin;
+          pdf.setFillColor(userBubbleColor.r, userBubbleColor.g, userBubbleColor.b);
+          pdf.roundedRect(bx, yPosition, bw, bh, 3, 3, 'F');
+          pdf.setFontSize(10);
+          pdf.setTextColor(255, 255, 255);
+          pdf.text('▶ Video attachment', bx + 5, yPosition + 12);
+          yPosition += bh + 5;
+        }
+      } else if (message.content.type === 'image') {
         try {
           // For images, we'll use the original data URL directly for 100% quality
           const imgDataUrl = message.content.content;

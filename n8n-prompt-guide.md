@@ -202,7 +202,7 @@ After drafting your full response, perform this check before outputting:
 7. Is "Blood Libel Allegations" or "Blood Libel" appearing as its own section header? If yes, merge its content into Classic Antisemitism Symbols and/or Collective Blame.
 8. Have I checked all 11 IHRA rules against this content? Is there a rule that is violated but missing from my output? If yes, add it.
 9. Does any figure or symbol in the image match a specialised protocol (Blind Synagoga, Judenhut, inverted red triangle, etc.)? If yes, have I named it and applied the full protocol — not just described its features? If not, go back and apply the protocol.
-10. Is the content context-dependent (e.g., "Free Palestine") with no surrounding antisemitic framing? If yes, the verdict must be "Verdict: Inconclusive." — NOT "is not antisemitic."
+10. Is the content context-dependent (e.g., "Free Palestine") with no surrounding antisemitic framing? If yes, the verdict must be "Verdict: Inconclusive." — NOT "is not antisemitic." Does "Verdict: Inconclusive." appear more than once in the conclusion? If yes, remove all but the final instance.
 
 #### Worked example — STUDY THIS
 
@@ -251,7 +251,9 @@ ONLY for explicitly context-dependent content (e.g., "Free Palestine", "Free Fre
 **Applying IHRA to the statement:**
 
 **Conclusion:**
-[Explain that the content is context-dependent and cannot be classified without knowing the surrounding framing, intent, or usage. State what would make it antisemitic and what would not.] Verdict: Inconclusive.
+[Explain that the content is context-dependent and cannot be classified without knowing the surrounding framing, intent, or usage. State what would make it antisemitic and what would not. End with the single phrase:] Verdict: Inconclusive.
+
+Do NOT write "Verdict: Inconclusive." more than once in the conclusion. It must appear exactly once, as the final sentence.
 
 
 ## Analysis Guidelines
