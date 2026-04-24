@@ -57,8 +57,7 @@ function extractFrameAt(filePath: string, timestamp: number, outputPath: string)
     ffmpeg(filePath)
       .seekInput(timestamp)
       .frames(1)
-      .size('480x?')          // scale to 480px wide, maintain aspect ratio — reduces payload ~75%
-      .outputOptions(['-q:v', '8']) // JPEG quality 8 — sharp enough for vision model, smaller file
+      .outputOptions(['-vf', 'scale=480:-2', '-q:v', '8']) // scale to 480px wide, keep aspect ratio
       .output(outputPath)
       .on('end', () => resolve())
       .on('error', (err) => reject(err))
