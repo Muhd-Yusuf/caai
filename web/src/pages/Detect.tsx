@@ -55,15 +55,18 @@ const Detect: React.FC = () => {
             <video
               src={message.content}
               controls
-              autoPlay
-              muted
               playsInline
               className="uploaded-image shadow-lg hover:shadow-xl transition-shadow duration-300 rounded-lg"
               style={{ maxWidth: '100%', maxHeight: '300px' }}
               preload="auto"
-              onCanPlay={(e) => {
-                const v = e.target as HTMLVideoElement;
-                v.play().then(() => { v.muted = false; }).catch(() => {});
+              ref={(v) => {
+                if (!v) return;
+                // Mute only for the autoplay attempt, then always unmute
+                // so manual play on large videos also has sound
+                v.muted = true;
+                v.play()
+                  .then(() => { v.muted = false; })
+                  .catch(() => { v.muted = false; });
               }}
             />
             {message.fileSize && (
