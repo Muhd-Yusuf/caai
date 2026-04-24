@@ -392,7 +392,7 @@ const Detect: React.FC = () => {
           pdf.setFontSize(7);
           pdf.setFont('helvetica', 'normal');
           pdf.setTextColor(219, 234, 254);
-          const label = message.content.fileSize ? `▶ Video  ${message.content.fileSize}` : '▶ Video';
+          const label = message.content.fileSize ? `[Video]  ${message.content.fileSize}` : '[Video]';
           pdf.text(label, bubbleX + 5, yPosition + 5 + imgHeight + 7);
 
           pdf.setFontSize(8);
