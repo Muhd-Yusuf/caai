@@ -61,7 +61,10 @@ const Detect: React.FC = () => {
               className="uploaded-image shadow-lg hover:shadow-xl transition-shadow duration-300 rounded-lg"
               style={{ maxWidth: '100%', maxHeight: '300px' }}
               preload="auto"
-              onCanPlay={(e) => { (e.target as HTMLVideoElement).play().catch(() => {}); }}
+              onCanPlay={(e) => {
+                const v = e.target as HTMLVideoElement;
+                v.play().then(() => { v.muted = false; }).catch(() => {});
+              }}
             />
             {message.fileSize && (
               <span className="absolute bottom-2 right-2 bg-black bg-opacity-60 text-white text-xs px-2 py-0.5 rounded">
@@ -350,9 +353,11 @@ const Detect: React.FC = () => {
             const vid = document.createElement('video');
             vid.muted = true;
             vid.preload = 'metadata';
+            vid.crossOrigin = 'anonymous';
             vid.src = message.content.content;
-            vid.currentTime = 0.5;
-            vid.onloadeddata = () => {
+            // Must wait for metadata before seeking, then wait for seek to complete
+            vid.onloadedmetadata = () => { vid.currentTime = 1; };
+            vid.onseeked = () => {
               const canvas = document.createElement('canvas');
               canvas.width = vid.videoWidth || 480;
               canvas.height = vid.videoHeight || 270;
@@ -362,6 +367,8 @@ const Detect: React.FC = () => {
               resolve(canvas.toDataURL('image/jpeg', 0.8));
             };
             vid.onerror = reject;
+            // Timeout fallback — if seek never fires, reject so placeholder is used
+            setTimeout(() => reject(new Error('thumbnail timeout')), 5000);
           });
 
           const img = new Image();
