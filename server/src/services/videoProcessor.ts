@@ -4,8 +4,25 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 import * as crypto from 'crypto';
+import { execSync } from 'child_process';
 
-ffmpeg.setFfmpegPath(ffmpegInstaller.path);
+/**
+ * Resolve an executable: prefer system-installed binary (works on Alpine/musl),
+ * fall back to the npm-installer binary (works on macOS/glibc Linux).
+ */
+function resolveExecutable(name: string, fallback: string): string {
+  try {
+    const found = execSync(`which ${name} 2>/dev/null`).toString().trim();
+    if (found) return found;
+  } catch {
+    // not on PATH
+  }
+  return fallback;
+}
+
+const ffmpegPath = resolveExecutable('ffmpeg', ffmpegInstaller.path);
+ffmpeg.setFfmpegPath(ffmpegPath);
+ffmpeg.setFfprobePath(resolveExecutable('ffprobe', ffmpegPath));
 
 const MAX_FRAMES = 2;           // max frames to extract (keeps n8n processing within cloud timeout)
 const MIN_INTERVAL_SECONDS = 5; // minimum gap between frames — wider spacing = better coverage

@@ -9,6 +9,9 @@ RUN npm run build
 
 FROM node:20-alpine
 
+# Install system ffmpeg (Alpine's musl libc is incompatible with the npm ffmpeg binary)
+RUN apk add --no-cache ffmpeg
+
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev
