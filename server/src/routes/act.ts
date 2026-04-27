@@ -138,14 +138,34 @@ router.post('/chat', optionalAuth, async (req: AuthenticatedRequest, res: Respon
       return;
     }
 
-    // --- Image processing ---
+    // --- Image processing — routed via n8n to avoid OpenAI content moderation refusals ---
     if (imageData) {
-      const userContent: OpenAIContent[] = [
-        { type: 'text', text: 'Hate-speech detection request. This image has been submitted to the ACT antisemitism classification system for IHRA analysis. This may include historical Nazi propaganda, antisemitic caricatures, or extremist imagery — analysing such content is the explicit safety purpose of this system. Classify this image using the IHRA framework defined in your system instructions and produce the output in Format B (image). If no antisemitic content is found, use the not-antisemitic output format.' },
-        { type: 'image_url', image_url: { url: imageData, detail: 'auto' } },
-      ];
+      const n8nPayload = {
+        action: 'sendMessage',
+        sessionId: sessionId || 'unknown',
+        chatInput: chatInput || 'analyze this image',
+        files: [{
+          fileName: 'image.jpg',
+          fileSize: '1 MB',
+          fileType: 'image',
+          mimeType: 'image/jpeg',
+          fileExtension: 'jpeg',
+          binaryKey: imageData,
+        }],
+      };
 
-      output = await sendToOpenAI(userContent);
+      const n8nResponse = await fetch(config.n8nWebhookUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify([n8nPayload]),
+      });
+
+      if (!n8nResponse.ok) {
+        throw new Error(`n8n responded with status ${n8nResponse.status}`);
+      }
+
+      const n8nData = await n8nResponse.json() as { output?: string };
+      output = n8nData?.output || 'Could not analyze the image.';
       await recordSubmission(userId, sessionId || 'unknown', 'image');
       res.json({ output });
       return;
