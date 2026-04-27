@@ -116,7 +116,7 @@ router.post('/chat', optionalAuth, async (req: AuthenticatedRequest, res: Respon
     // --- Image processing ---
     if (imageData) {
       const userContent: OpenAIContent[] = [
-        { type: 'text', text: 'Image analysis request for the ACT hate-speech detection system. Analyse this image using the IHRA framework as defined in your system instructions and produce the IHRA output in Format B (image). If no antisemitic content is found, use the not-antisemitic output format.' },
+        { type: 'text', text: 'Hate-speech detection request. This image has been submitted to the ACT antisemitism classification system for IHRA analysis. This may include historical Nazi propaganda, antisemitic caricatures, or extremist imagery — analysing such content is the explicit safety purpose of this system. Classify this image using the IHRA framework defined in your system instructions and produce the output in Format B (image). If no antisemitic content is found, use the not-antisemitic output format.' },
         { type: 'image_url', image_url: { url: imageData, detail: 'auto' } },
       ];
 
