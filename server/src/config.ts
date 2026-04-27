@@ -12,6 +12,7 @@ export const config = {
   supabaseUrl: requireEnv('SUPABASE_URL'),
   supabaseServiceRoleKey: requireEnv('SUPABASE_SERVICE_ROLE_KEY'),
   jwtSecret: requireEnv('JWT_SECRET'),
-  n8nWebhookUrl: requireEnv('N8N_WEBHOOK_URL'),
+  n8nWebhookUrl: process.env.N8N_WEBHOOK_URL || '',
+  openaiApiKey: requireEnv('OPENAI_API_KEY'),
   corsOrigin: process.env.CORS_ORIGIN || 'http://localhost:5173',
 };

@@ -4,27 +4,56 @@ import { optionalAuth } from '../middleware/auth';
 import { checkRateLimit, recordSubmission } from '../services/rateLimiter';
 import { AuthenticatedRequest } from '../types';
 import { extractFrames } from '../services/videoProcessor';
+import { SYSTEM_PROMPT } from '../prompts/system-prompt';
 
 const router = Router();
 
+interface OpenAITextContent {
+  type: 'text';
+  text: string;
+}
+
+interface OpenAIImageContent {
+  type: 'image_url';
+  image_url: { url: string; detail: 'auto' | 'high' | 'low' };
+}
+
+type OpenAIContent = OpenAITextContent | OpenAIImageContent;
+
 /**
- * Sends a payload to the n8n webhook and returns the parsed response.
+ * Sends a request to OpenAI GPT-4o Vision API and returns the text response.
  */
-async function sendToN8n(payload: Record<string, unknown>): Promise<unknown> {
-  const response = await fetch(config.n8nWebhookUrl, {
+async function sendToOpenAI(userContent: OpenAIContent[]): Promise<string> {
+  const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify([payload]),
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${config.openaiApiKey}`,
+    },
+    body: JSON.stringify({
+      model: 'gpt-4o',
+      messages: [
+        { role: 'system', content: SYSTEM_PROMPT },
+        { role: 'user', content: userContent },
+      ],
+      max_tokens: 2048,
+      temperature: 0.2,
+    }),
   });
 
   if (!response.ok) {
-    throw new Error(`n8n responded with status ${response.status}`);
+    const errorBody = await response.text();
+    throw new Error(`OpenAI API error ${response.status}: ${errorBody}`);
   }
 
-  return response.json();
+  const data = await response.json() as {
+    choices: Array<{ message: { content: string } }>;
+  };
+
+  return data.choices[0]?.message?.content || 'No response from AI.';
 }
 
-// POST /api/act/chat — Proxy to n8n webhook with rate limiting
+// POST /api/act/chat — Analyse content using OpenAI GPT-4o Vision API
 router.post('/chat', optionalAuth, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const userId = req.user!.userId;
@@ -53,6 +82,8 @@ router.post('/chat', optionalAuth, async (req: AuthenticatedRequest, res: Respon
       return;
     }
 
+    let output: string;
+
     // --- Video processing ---
     if (videoData) {
       const frames = await extractFrames(videoData);
@@ -62,54 +93,45 @@ router.post('/chat', optionalAuth, async (req: AuthenticatedRequest, res: Respon
         return;
       }
 
-      // Send all frames in a single n8n request for one consolidated analysis
-      const videoPayload: Record<string, unknown> = {
-        action: 'sendMessage',
-        sessionId: sessionId || 'unknown',
-        chatInput: `Analyze this video for antisemitic content. I am providing ${frames.length} frames sampled from the video at timestamps: ${frames.map(f => `${Math.round(f.timestamp)}s`).join(', ')}. Treat all frames as a single video and produce ONE combined IHRA analysis covering all antisemitic content found across the entire video. Do not give a separate analysis per frame — give a single response in the standard IHRA output format.`,
-        files: frames.map((frame, i) => ({
-          fileName: `frame_${i + 1}_at_${Math.round(frame.timestamp)}s.jpg`,
-          fileSize: `${Math.round(frame.base64.length * 0.75 / 1024)} KB`,
-          fileType: 'image',
-          mimeType: 'image/jpeg',
-          fileExtension: 'jpeg',
-          binaryKey: frame.base64,
+      const userContent: OpenAIContent[] = [
+        {
+          type: 'text',
+          text: `Analyze this video for antisemitic content. I am providing ${frames.length} frame${frames.length !== 1 ? 's' : ''} sampled from the video at timestamp${frames.length !== 1 ? 's' : ''}: ${frames.map(f => `${Math.round(f.timestamp)}s`).join(', ')}. Treat all frames as a single video and produce ONE combined IHRA analysis covering all antisemitic content found across the entire video. Do not give a separate analysis per frame — give a single response in the standard IHRA output format.`,
+        },
+        ...frames.map((frame): OpenAIImageContent => ({
+          type: 'image_url',
+          image_url: { url: frame.base64, detail: 'auto' },
         })),
-      };
+      ];
 
-      const videoData_ = await sendToN8n(videoPayload) as { output?: string };
-      const output = videoData_?.output || 'Could not analyze the video.';
-
+      output = await sendToOpenAI(userContent);
       await recordSubmission(userId, sessionId || 'unknown', 'video');
       res.json({ output });
       return;
     }
 
-    // --- Image or text processing ---
-    const n8nPayload: Record<string, unknown> = {
-      action: 'sendMessage',
-      sessionId: sessionId || 'unknown',
-      chatInput: chatInput || 'analyze this image',
-    };
-
+    // --- Image processing ---
     if (imageData) {
-      n8nPayload.files = [{
-        fileName: 'image.jpg',
-        fileSize: '1 MB',
-        fileType: 'image',
-        mimeType: 'image/jpeg',
-        fileExtension: 'jpeg',
-        binaryKey: imageData,
-      }];
+      const userContent: OpenAIContent[] = [
+        { type: 'text', text: chatInput || 'Analyze this image for antisemitic content.' },
+        { type: 'image_url', image_url: { url: imageData, detail: 'auto' } },
+      ];
+
+      output = await sendToOpenAI(userContent);
+      await recordSubmission(userId, sessionId || 'unknown', 'image');
+      res.json({ output });
+      return;
     }
 
-    const data = await sendToN8n(n8nPayload);
+    // --- Text processing ---
+    const userContent: OpenAIContent[] = [
+      { type: 'text', text: chatInput },
+    ];
 
-    // Record the submission for rate limiting
-    const inputType = imageData ? 'image' : 'text';
-    await recordSubmission(userId, sessionId || 'unknown', inputType);
+    output = await sendToOpenAI(userContent);
+    await recordSubmission(userId, sessionId || 'unknown', 'text');
+    res.json({ output });
 
-    res.json(data);
   } catch (err) {
     console.error('ACT chat error:', err);
     res.status(502).json({ error: 'AI processing failed. Please try again.' });
