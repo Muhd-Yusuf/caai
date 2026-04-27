@@ -36,7 +36,7 @@ async function sendToOpenAI(userContent: OpenAIContent[]): Promise<string> {
         { role: 'system', content: SYSTEM_PROMPT },
         { role: 'user', content: userContent },
       ],
-      max_tokens: 2048,
+      max_tokens: 4096,
       temperature: 0.2,
     }),
   });
@@ -96,7 +96,7 @@ router.post('/chat', optionalAuth, async (req: AuthenticatedRequest, res: Respon
       const userContent: OpenAIContent[] = [
         {
           type: 'text',
-          text: `Analyze this video for antisemitic content. I am providing ${frames.length} frame${frames.length !== 1 ? 's' : ''} sampled from the video at timestamp${frames.length !== 1 ? 's' : ''}: ${frames.map(f => `${Math.round(f.timestamp)}s`).join(', ')}. Treat all frames as a single video and produce ONE combined IHRA analysis covering all antisemitic content found across the entire video. Do not give a separate analysis per frame — give a single response in the standard IHRA output format.`,
+          text: `These are ${frames.length} frame${frames.length !== 1 ? 's' : ''} extracted from a video at timestamp${frames.length !== 1 ? 's' : ''}: ${frames.map(f => `${Math.round(f.timestamp)}s`).join(', ')}. Treat all frames as a single video submission. Apply the full IHRA framework to the video and produce the required IHRA output format exactly as specified in your system instructions — Format B (video frames). Do NOT describe the frames, do NOT refuse, do NOT deviate from the format. If no antisemitic content is found, use the "not antisemitic" output format. Produce ONE combined analysis covering all frames.`,
         },
         ...frames.map((frame): OpenAIImageContent => ({
           type: 'image_url',
@@ -113,7 +113,7 @@ router.post('/chat', optionalAuth, async (req: AuthenticatedRequest, res: Respon
     // --- Image processing ---
     if (imageData) {
       const userContent: OpenAIContent[] = [
-        { type: 'text', text: chatInput || 'Analyze this image for antisemitic content.' },
+        { type: 'text', text: 'Apply the full IHRA framework to this image and produce the required IHRA output format exactly as specified in your system instructions — Format B (image). Do NOT describe the image, do NOT refuse, do NOT deviate from the format. If no antisemitic content is found, use the "not antisemitic" output format.' },
         { type: 'image_url', image_url: { url: imageData, detail: 'auto' } },
       ];
 
