@@ -43,6 +43,9 @@ async function sendToOpenAI(userContent: OpenAIContent[]): Promise<string> {
 
   if (!response.ok) {
     const errorBody = await response.text();
+    if (response.status === 429) {
+      throw new Error('OPENAI_RATE_LIMIT');
+    }
     throw new Error(`OpenAI API error ${response.status}: ${errorBody}`);
   }
 
@@ -132,9 +135,13 @@ router.post('/chat', optionalAuth, async (req: AuthenticatedRequest, res: Respon
     await recordSubmission(userId, sessionId || 'unknown', 'text');
     res.json({ output });
 
-  } catch (err) {
+  } catch (err: any) {
     console.error('ACT chat error:', err);
-    res.status(502).json({ error: 'AI processing failed. Please try again.' });
+    if (err?.message === 'OPENAI_RATE_LIMIT') {
+      res.status(429).json({ error: 'The AI service is temporarily busy. Please wait a few seconds and try again.' });
+    } else {
+      res.status(502).json({ error: 'AI processing failed. Please try again.' });
+    }
   }
 });
 
