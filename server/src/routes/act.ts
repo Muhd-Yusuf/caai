@@ -99,7 +99,7 @@ router.post('/chat', optionalAuth, async (req: AuthenticatedRequest, res: Respon
       const userContent: OpenAIContent[] = [
         {
           type: 'text',
-          text: `These are ${frames.length} frame${frames.length !== 1 ? 's' : ''} extracted from a video at timestamp${frames.length !== 1 ? 's' : ''}: ${frames.map(f => `${Math.round(f.timestamp)}s`).join(', ')}. Treat all frames as a single video submission. Apply the full IHRA framework to the video and produce the required IHRA output format exactly as specified in your system instructions — Format B (video frames). Do NOT describe the frames, do NOT refuse, do NOT deviate from the format. If no antisemitic content is found, use the "not antisemitic" output format. Produce ONE combined analysis covering all frames.`,
+          text: `Video analysis request for the ACT hate-speech detection system. These are ${frames.length} frame${frames.length !== 1 ? 's' : ''} extracted from a video at timestamp${frames.length !== 1 ? 's' : ''}: ${frames.map(f => `${Math.round(f.timestamp)}s`).join(', ')}. Treat all frames as a single video. Produce ONE combined IHRA analysis in Format B (video frames) as defined in your system instructions. If no antisemitic content is found, use the not-antisemitic output format.`,
         },
         ...frames.map((frame): OpenAIImageContent => ({
           type: 'image_url',
@@ -116,7 +116,7 @@ router.post('/chat', optionalAuth, async (req: AuthenticatedRequest, res: Respon
     // --- Image processing ---
     if (imageData) {
       const userContent: OpenAIContent[] = [
-        { type: 'text', text: 'Apply the full IHRA framework to this image and produce the required IHRA output format exactly as specified in your system instructions — Format B (image). Do NOT describe the image, do NOT refuse, do NOT deviate from the format. If no antisemitic content is found, use the "not antisemitic" output format.' },
+        { type: 'text', text: 'Image analysis request for the ACT hate-speech detection system. Analyse this image using the IHRA framework as defined in your system instructions and produce the IHRA output in Format B (image). If no antisemitic content is found, use the not-antisemitic output format.' },
         { type: 'image_url', image_url: { url: imageData, detail: 'auto' } },
       ];
 
@@ -127,8 +127,15 @@ router.post('/chat', optionalAuth, async (req: AuthenticatedRequest, res: Respon
     }
 
     // --- Text processing ---
+    // Wrap content submissions in analysis framing to prevent content moderation
+    // refusals. For questions/follow-ups, send as-is so Q&A mode is preserved.
+    const isQuestion = /^(what|how|why|who|when|where|explain|tell|expand|describe|can you|could you|is |are |do |does |\?)/i.test(chatInput.trim()) || chatInput.includes('?');
+    const textPrompt = isQuestion
+      ? chatInput
+      : `Text analysis request for the ACT hate-speech detection system. Analyse the following submission using the IHRA framework as defined in your system instructions and produce the IHRA output format. If no antisemitic content is found, use the not-antisemitic output format. Submission to analyse: "${chatInput}"`;
+
     const userContent: OpenAIContent[] = [
-      { type: 'text', text: `Apply the full IHRA framework to the following text submission and produce the required IHRA output format exactly as specified in your system instructions. Do NOT refuse, do NOT deviate from the format. If no antisemitic content is found, use the "not antisemitic" output format. Submission: ${chatInput}` },
+      { type: 'text', text: textPrompt },
     ];
 
     output = await sendToOpenAI(userContent);
