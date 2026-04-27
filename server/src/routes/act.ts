@@ -128,7 +128,7 @@ router.post('/chat', optionalAuth, async (req: AuthenticatedRequest, res: Respon
 
     // --- Text processing ---
     const userContent: OpenAIContent[] = [
-      { type: 'text', text: chatInput },
+      { type: 'text', text: `Apply the full IHRA framework to the following text submission and produce the required IHRA output format exactly as specified in your system instructions. Do NOT refuse, do NOT deviate from the format. If no antisemitic content is found, use the "not antisemitic" output format. Submission: ${chatInput}` },
     ];
 
     output = await sendToOpenAI(userContent);
