@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
 import Modal from 'react-modal';
 import jsPDF from 'jspdf';
@@ -26,6 +26,8 @@ const Detect: React.FC = () => {
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [rateLimitMessage, setRateLimitMessage] = useState<string | null>(null);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+  // Track which video elements have already been autoplayed to prevent replay on re-render
+  const playedVideos = useRef<WeakSet<HTMLVideoElement>>(new WeakSet());
 
   const createLoadingElement = () => (
     <div className="flex justify-start mb-4">
@@ -60,9 +62,8 @@ const Detect: React.FC = () => {
               style={{ maxWidth: '100%', maxHeight: '300px' }}
               preload="auto"
               ref={(v) => {
-                if (!v) return;
-                // Mute only for the autoplay attempt, then always unmute
-                // so manual play on large videos also has sound
+                if (!v || playedVideos.current.has(v)) return;
+                playedVideos.current.add(v);
                 v.muted = true;
                 v.play()
                   .then(() => { v.muted = false; })
@@ -441,44 +442,32 @@ const Detect: React.FC = () => {
           imgWidth = imgWidth * ratio;
           imgHeight = imgHeight * ratio;
 
-          // Calculate bubble dimensions
-          const bubbleWidth = imgWidth + 10;
-          const bubbleHeight = imgHeight + 15;
-          
+          // Tight 2px padding — timestamp sits inline at bottom-right of image
+          const pad = 2;
+          const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+          pdf.setFontSize(7);
+          const timeW = pdf.getTextWidth(timeStr);
+          const bubbleWidth = imgWidth + pad * 2;
+          const bubbleHeight = imgHeight + pad * 2;
+
           checkAndAddPage(bubbleHeight + 10);
 
-          // Position based on sender (WhatsApp style)
           const bubbleX = isUser ? pageWidth - margin - bubbleWidth : margin;
-          
-          // Draw message bubble matching app styling
+
           if (isUser) {
             pdf.setFillColor(userBubbleColor.r, userBubbleColor.g, userBubbleColor.b);
           } else {
             pdf.setFillColor(aiBubbleColor.r, aiBubbleColor.g, aiBubbleColor.b);
           }
-          
-          // Draw rounded rectangle
-          pdf.roundedRect(bubbleX, yPosition, bubbleWidth, bubbleHeight, 3, 3, 'F');
-          
-          // Add the image with original quality
-          const imageX = bubbleX + 5;
-          const imageY = yPosition + 5;
-          
-          // Use the original data URL directly - this preserves 100% quality
-          pdf.addImage(imgDataUrl, imageX, imageY, imgWidth, imgHeight);
-          
-          // Add timestamp
-          pdf.setFontSize(8);
-          if (isUser) {
-            pdf.setTextColor(219, 234, 254); // Blue-100 for user timestamps
-          } else {
-            pdf.setTextColor(156, 163, 175); // Gray-400 for AI timestamps
-          }
-          const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-          const timeWidth = pdf.getTextWidth(time);
-          const timeX = isUser ? bubbleX + bubbleWidth - timeWidth - 5 : bubbleX + 5;
-          pdf.text(time, timeX, yPosition + bubbleHeight - 3);
-          
+
+          pdf.roundedRect(bubbleX, yPosition, bubbleWidth, bubbleHeight, 2, 2, 'F');
+          pdf.addImage(imgDataUrl, bubbleX + pad, yPosition + pad, imgWidth, imgHeight);
+
+          // Timestamp inline at bottom-right, overlaid on image
+          pdf.setFontSize(7);
+          pdf.setTextColor(255, 255, 255);
+          pdf.text(timeStr, bubbleX + bubbleWidth - timeW - pad - 1, yPosition + bubbleHeight - pad);
+
           yPosition += bubbleHeight + 5;
           
         } catch (error) {

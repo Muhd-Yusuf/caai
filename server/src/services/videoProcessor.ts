@@ -57,7 +57,7 @@ function extractFrameAt(filePath: string, timestamp: number, outputPath: string)
     ffmpeg(filePath)
       .seekInput(timestamp)
       .frames(1)
-      .outputOptions(['-vf', 'scale=480:-2', '-q:v', '8']) // scale to 480px wide, keep aspect ratio
+      .outputOptions(['-vf', 'scale=320:-2', '-q:v', '10']) // 320px wide — smaller payload = faster n8n processing
       .output(outputPath)
       .on('end', () => resolve())
       .on('error', (err) => reject(err))
