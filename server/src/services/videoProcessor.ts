@@ -57,7 +57,7 @@ function extractFrameAt(filePath: string, timestamp: number, outputPath: string)
     ffmpeg(filePath)
       .seekInput(timestamp)
       .frames(1)
-      .outputOptions(['-vf', 'scale=320:-2', '-q:v', '10']) // 320px wide — smaller payload = faster n8n processing
+      .outputOptions(['-q:v', '10']) // quality reduction only — no scaling to avoid ffmpeg version issues on Render
       .output(outputPath)
       .on('end', () => resolve())
       .on('error', (err) => reject(err))
