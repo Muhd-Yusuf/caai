@@ -8,12 +8,28 @@ interface ApiOptions {
 async function request<T>(path: string, options: ApiOptions = {}): Promise<T> {
   const { method = 'GET', body } = options;
 
-  const res = await fetch(`${API_BASE}${path}`, {
-    method,
-    headers: body ? { 'Content-Type': 'application/json' } : undefined,
-    credentials: 'include',
-    body: body ? JSON.stringify(body) : undefined,
-  });
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 90_000); // 90s — covers video analysis
+
+  let res: Response;
+  try {
+    res = await fetch(`${API_BASE}${path}`, {
+      method,
+      headers: body ? { 'Content-Type': 'application/json' } : undefined,
+      credentials: 'include',
+      body: body ? JSON.stringify(body) : undefined,
+      signal: controller.signal,
+    });
+  } catch (err: any) {
+    clearTimeout(timeoutId);
+    if (err?.name === 'AbortError') {
+      const error = new Error('Analysis timed out. Try a shorter video or try again.') as Error & { status: number };
+      error.status = 408;
+      throw error;
+    }
+    throw new Error(err?.message || 'Network error. Please check your connection and try again.');
+  }
+  clearTimeout(timeoutId);
 
   let data: any;
   try {

@@ -24,9 +24,7 @@ const ffmpegPath = resolveExecutable('ffmpeg', ffmpegInstaller.path);
 ffmpeg.setFfmpegPath(ffmpegPath);
 ffmpeg.setFfprobePath(resolveExecutable('ffprobe', ffmpegPath));
 
-const MAX_FRAMES_SHORT = 1;     // 1 frame for videos under 15 seconds
-const MAX_FRAMES_LONG = 2;      // 2 frames for longer videos
-const SHORT_VIDEO_THRESHOLD = 15; // seconds
+const MAX_FRAMES = 1;           // always 1 frame — minimises OpenAI latency and avoids Render timeout
 const MIN_INTERVAL_SECONDS = 5; // minimum gap between frames — wider spacing = better coverage
 
 interface ExtractedFrame {
@@ -99,12 +97,10 @@ export async function extractFrames(videoDataUrl: string): Promise<ExtractedFram
       throw new Error('Could not determine video duration');
     }
 
-    // Distribute frames evenly across the video, capped based on duration.
-    // Short videos (< 15s) get 1 frame; longer videos get up to 2.
+    // Always extract 1 frame to minimise OpenAI latency and avoid server timeouts.
     // Skip the last 3 seconds to avoid trailing logo/end-cards (e.g. TikTok logo).
     const usableDuration = Math.max(duration - 3, 1);
-    const maxFrames = duration < SHORT_VIDEO_THRESHOLD ? MAX_FRAMES_SHORT : MAX_FRAMES_LONG;
-    const frameCount = Math.min(maxFrames, Math.max(1, Math.floor(usableDuration / MIN_INTERVAL_SECONDS)));
+    const frameCount = Math.min(MAX_FRAMES, Math.max(1, Math.floor(usableDuration / MIN_INTERVAL_SECONDS)));
     const interval = usableDuration / frameCount;
     const timestamps: number[] = [];
     for (let i = 0; i < frameCount; i++) {
