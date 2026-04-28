@@ -163,6 +163,8 @@ const Detect: React.FC = () => {
     };
     reader.onerror = () => {
       setUploadProgress(null);
+      setIsLoading(false);
+      toggleInputs(false);
       setMessages(prev => [...prev, {
         content: { content: 'Error: Failed to read the file. Please try again.', type: 'text' },
         isUser: false,
@@ -233,6 +235,8 @@ const Detect: React.FC = () => {
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    // Reset input immediately so the same file can be re-selected after an error
+    e.target.value = '';
     if (file) {
       processFile(file);
     }

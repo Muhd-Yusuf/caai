@@ -15,15 +15,24 @@ async function request<T>(path: string, options: ApiOptions = {}): Promise<T> {
     body: body ? JSON.stringify(body) : undefined,
   });
 
-  const data = await res.json();
+  let data: any;
+  try {
+    data = await res.json();
+  } catch {
+    // Server returned non-JSON (e.g. Render 502 HTML page)
+    const error = new Error('Server error. Please try again.') as Error & { status: number };
+    error.status = res.status;
+    throw error;
+  }
 
   if (!res.ok) {
-    const error = new Error(data.error || 'Request failed') as Error & {
+    const errorMessage = typeof data.error === 'string' ? data.error : 'Request failed';
+    const error = new Error(errorMessage) as Error & {
       status: number;
-      resetInHours?: number;
+      resetInMinutes?: number;
     };
     error.status = res.status;
-    if (data.resetInHours) error.resetInHours = data.resetInHours;
+    if (data.resetInMinutes) error.resetInMinutes = data.resetInMinutes;
     throw error;
   }
 
