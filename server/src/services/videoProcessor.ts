@@ -24,7 +24,9 @@ const ffmpegPath = resolveExecutable('ffmpeg', ffmpegInstaller.path);
 ffmpeg.setFfmpegPath(ffmpegPath);
 ffmpeg.setFfprobePath(resolveExecutable('ffprobe', ffmpegPath));
 
-const MAX_FRAMES = 2;           // max frames to extract (keeps n8n processing within cloud timeout)
+const MAX_FRAMES_SHORT = 1;     // 1 frame for videos under 15 seconds
+const MAX_FRAMES_LONG = 2;      // 2 frames for longer videos
+const SHORT_VIDEO_THRESHOLD = 15; // seconds
 const MIN_INTERVAL_SECONDS = 5; // minimum gap between frames — wider spacing = better coverage
 
 interface ExtractedFrame {
@@ -74,7 +76,7 @@ function extractFrameAt(filePath: string, timestamp: number, outputPath: string)
     ffmpeg(filePath)
       .seekInput(timestamp)
       .frames(1)
-      .outputOptions(['-q:v', '10']) // quality reduction only — no scaling to avoid ffmpeg version issues on Render
+      .outputOptions(['-q:v', '10', '-vf', 'scale=768:-2']) // cap at 768px wide to reduce OpenAI token cost
       .output(outputPath)
       .on('end', () => resolve())
       .on('error', (err) => reject(err))
@@ -97,10 +99,12 @@ export async function extractFrames(videoDataUrl: string): Promise<ExtractedFram
       throw new Error('Could not determine video duration');
     }
 
-    // Distribute frames evenly across the video, capped at MAX_FRAMES.
+    // Distribute frames evenly across the video, capped based on duration.
+    // Short videos (< 15s) get 1 frame; longer videos get up to 2.
     // Skip the last 3 seconds to avoid trailing logo/end-cards (e.g. TikTok logo).
     const usableDuration = Math.max(duration - 3, 1);
-    const frameCount = Math.min(MAX_FRAMES, Math.max(1, Math.floor(usableDuration / MIN_INTERVAL_SECONDS)));
+    const maxFrames = duration < SHORT_VIDEO_THRESHOLD ? MAX_FRAMES_SHORT : MAX_FRAMES_LONG;
+    const frameCount = Math.min(maxFrames, Math.max(1, Math.floor(usableDuration / MIN_INTERVAL_SECONDS)));
     const interval = usableDuration / frameCount;
     const timestamps: number[] = [];
     for (let i = 0; i < frameCount; i++) {
