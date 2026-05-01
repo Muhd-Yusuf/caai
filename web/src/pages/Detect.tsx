@@ -16,7 +16,7 @@ const Detect: React.FC = () => {
   const [messages, setMessages] = useState<Array<{ content: { type: string, content: string, fileSize?: string }, isUser: boolean }>>([{
     content: {
       type: 'text',
-      content: 'Hello! I can help you detect antisemitic content in text, images, or videos. Please share what you\'d like me to analyze.\n\nYou may also ask me questions or direct me to expand my response. For example: Expand on the topic in relation to the last image analyzed.'
+      content: 'Hello! I can help you detect antisemitic content in text or images. Please share what you\'d like me to analyze.\n\nYou may also ask me questions or direct me to expand my response. For example: Expand on the topic in relation to the last image analyzed.'
     },
     isUser: false
   }]);
@@ -116,24 +116,11 @@ const Detect: React.FC = () => {
   };
 
   const allowedImageTypes = ['image/jpeg', 'image/bmp', 'image/png'];
-  const allowedVideoTypes = ['video/mp4', 'video/quicktime', 'video/webm'];
-  const allowedTypes = [...allowedImageTypes, ...allowedVideoTypes];
-  const MAX_VIDEO_SIZE = 50 * 1024 * 1024; // 50MB
 
   const processFile = useCallback((file: File) => {
-    if (!allowedTypes.includes(file.type)) {
+    if (!allowedImageTypes.includes(file.type)) {
       setMessages(prev => [...prev, {
-        content: { content: 'Error: Please upload JPEG, PNG, BMP images or MP4, MOV, WebM videos.', type: 'text' },
-        isUser: false,
-      }]);
-      return;
-    }
-
-    const isVideo = allowedVideoTypes.includes(file.type);
-
-    if (isVideo && file.size > MAX_VIDEO_SIZE) {
-      setMessages(prev => [...prev, {
-        content: { content: `Error: Video file is too large (${formatFileSize(file.size)}). Maximum size is 50MB.`, type: 'text' },
+        content: { content: 'Error: Please upload a JPEG, PNG, or BMP image.', type: 'text' },
         isUser: false,
       }]);
       return;
@@ -148,16 +135,12 @@ const Detect: React.FC = () => {
     reader.onload = async (event) => {
       setUploadProgress(null);
       if (event.target?.result) {
-        if (isVideo) {
-          sendMessage(event.target.result as string, 'video', formatFileSize(file.size));
-        } else {
-          try {
-            const compressedImage = await compressImage(event.target.result as string, 800, 600, 0.6);
-            sendMessage(compressedImage, 'image');
-          } catch (error) {
-            console.error('Error compressing image:', error);
-            sendMessage(event.target.result as string, 'image');
-          }
+        try {
+          const compressedImage = await compressImage(event.target.result as string, 800, 600, 0.6);
+          sendMessage(compressedImage, 'image');
+        } catch (error) {
+          console.error('Error compressing image:', error);
+          sendMessage(event.target.result as string, 'image');
         }
       }
     };
@@ -270,7 +253,7 @@ const Detect: React.FC = () => {
       if (!items) return;
 
       for (let i = 0; i < items.length; i++) {
-        if (items[i].type.indexOf('image') !== -1 || items[i].type.indexOf('video') !== -1) {
+        if (items[i].type.indexOf('image') !== -1) {
           const file = items[i].getAsFile();
           if (file) {
             processFile(file);
@@ -700,11 +683,14 @@ const Detect: React.FC = () => {
       <div className="container mx-auto px-4 md:px-6 pt-24 sm:pt-32 pb-16">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-6 sm:mb-8">
-            <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-3 sm:mb-4">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-1 sm:mb-2">
               The ACT, An AI-Powered Antisemitism Detection Tool
             </h1>
+            <p className="text-xs sm:text-sm text-blue-200 italic mb-3 sm:mb-4">
+              Beta version 2.0
+            </p>
             <p className="text-lg sm:text-xl text-blue-100">
-              Share text, images, or videos to analyze potential antisemitic content
+              Share text or images to analyze potential antisemitic content
             </p>
           </div>
 
@@ -746,7 +732,7 @@ const Detect: React.FC = () => {
                   <textarea 
                     id="messageInput" 
                     className="flex-1 px-3 sm:px-4 py-2 sm:py-3 border rounded-lg focus:outline-none focus:border-blue-500 resize-none overflow-hidden h-20 sm:h-24 placeholder-mobile-adaptive"
-                    placeholder="Type your message, paste an image/video, or upload using the camera icon..."
+                    placeholder="Paste your text or image here - you may also upload your image using the camera icon."
                     rows={1}
                     style={{
                       fontSize: 'clamp(0.75rem, 3.5vw, 1rem)',
@@ -786,21 +772,16 @@ const Detect: React.FC = () => {
                     
                     {/* Camera and Send buttons side by side */}
                     <div className="flex gap-1 sm:gap-2">
-                      <label 
-                        id="cameraLabel" 
+                      <label
+                        id="cameraLabel"
                         className="cursor-pointer bg-gray-200 hover:bg-gray-300 px-3 sm:px-4 py-2 sm:py-3 rounded-lg flex items-center transition-colors"
                       >
                         <img src={cameraIcon} alt="Upload image" className="w-5 h-5 sm:w-6 sm:h-6" />
-                        <span className="mx-0.5 text-gray-400 text-sm">/</span>
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5 sm:w-6 sm:h-6 text-gray-600">
-                          <polygon points="23 7 16 12 23 17 23 7" />
-                          <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
-                        </svg>
-                        <input 
-                          type="file" 
-                          id="imageInput" 
-                          className="hidden" 
-                          accept="image/jpeg,image/bmp,image/png,video/mp4,video/quicktime,video/webm"
+                        <input
+                          type="file"
+                          id="imageInput"
+                          className="hidden"
+                          accept="image/jpeg,image/bmp,image/png"
                           onChange={handleImageUpload}
                         />
                       </label>
@@ -832,7 +813,7 @@ const Detect: React.FC = () => {
                       setMessages([{
                         content: {
                           type: 'text',
-                          content: 'Hello! I can help you detect antisemitic content in text, images, or videos. Please share what you\'d like me to analyze.\n\nYou may also ask me questions or direct me to expand my response. For example: Expand on the topic in relation to the last image analyzed.'
+                          content: 'Hello! I can help you detect antisemitic content in text or images. Please share what you\'d like me to analyze.\n\nYou may also ask me questions or direct me to expand my response. For example: Expand on the topic in relation to the last image analyzed.'
                         },
                         isUser: false
                       }]);

@@ -20,63 +20,11 @@ interface OpenAIImageContent {
 
 type OpenAIContent = OpenAITextContent | OpenAIImageContent;
 
-interface HistoryMessage {
-  role: 'user' | 'assistant';
-  content: string;
-}
-
-interface SessionEntry {
-  messages: HistoryMessage[];
-  lastActive: number;
-}
-
-// In-memory conversation history keyed by sessionId.
-// Capped at MAX_HISTORY_MESSAGES per session; sessions expire after SESSION_TTL_MS of inactivity.
-const SESSION_MAX_MESSAGES = 10; // 5 user/assistant pairs
-const SESSION_TTL_MS = 30 * 60 * 1000; // 30 minutes
-const conversationHistory = new Map<string, SessionEntry>();
-
-function getHistory(sessionId: string): HistoryMessage[] {
-  const entry = conversationHistory.get(sessionId);
-  if (!entry) return [];
-  // Treat stale sessions as fresh
-  if (Date.now() - entry.lastActive > SESSION_TTL_MS) {
-    conversationHistory.delete(sessionId);
-    return [];
-  }
-  return entry.messages;
-}
-
-function appendHistory(sessionId: string, userText: string, assistantText: string): void {
-  const existing = conversationHistory.get(sessionId);
-  const messages: HistoryMessage[] = existing ? existing.messages : [];
-  messages.push({ role: 'user', content: userText });
-  messages.push({ role: 'assistant', content: assistantText });
-  // Keep only the most recent MAX_HISTORY_MESSAGES
-  const trimmed = messages.slice(-SESSION_MAX_MESSAGES);
-  conversationHistory.set(sessionId, { messages: trimmed, lastActive: Date.now() });
-}
-
-// Periodically evict sessions that have been idle beyond TTL to prevent memory leaks
-setInterval(() => {
-  const now = Date.now();
-  for (const [id, entry] of conversationHistory) {
-    if (now - entry.lastActive > SESSION_TTL_MS) {
-      conversationHistory.delete(id);
-    }
-  }
-}, SESSION_TTL_MS);
-
 /**
  * Sends a request to OpenAI GPT-4o Vision API and returns the text response.
- * Accepts optional conversation history for contextual follow-ups.
- * Retries up to 3 times on rate limit (429) with exponential backoff.
+ * Used only for video frame analysis. Retries up to 3 times on rate limit (429).
  */
-async function sendToOpenAI(
-  userContent: OpenAIContent[],
-  history: HistoryMessage[] = [],
-  attempt = 1,
-): Promise<string> {
+async function sendToOpenAI(userContent: OpenAIContent[], attempt = 1): Promise<string> {
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: {
@@ -87,7 +35,6 @@ async function sendToOpenAI(
       model: 'gpt-4o',
       messages: [
         { role: 'system', content: SYSTEM_PROMPT },
-        ...history,
         { role: 'user', content: userContent },
       ],
       max_tokens: 4096,
@@ -97,10 +44,10 @@ async function sendToOpenAI(
 
   if (response.status === 429) {
     if (attempt <= 3) {
-      const delay = attempt * 3000; // 3s, 6s, 9s
+      const delay = attempt * 3000;
       console.warn(`OpenAI rate limit hit, retrying in ${delay}ms (attempt ${attempt}/3)`);
       await new Promise(resolve => setTimeout(resolve, delay));
-      return sendToOpenAI(userContent, history, attempt + 1);
+      return sendToOpenAI(userContent, attempt + 1);
     }
     throw new Error('OPENAI_RATE_LIMIT');
   }
@@ -128,18 +75,34 @@ async function sendToOpenAI(
       },
       ...userContent.slice(1),
     ];
-    return sendToOpenAI(elevatedContent, history, 2);
+    return sendToOpenAI(elevatedContent, 2);
   }
 
   return content || 'No response from AI.';
 }
 
-// POST /api/act/chat — Analyse content using OpenAI GPT-4o Vision API
+/**
+ * Sends a payload to the n8n webhook and returns the parsed response.
+ */
+async function sendToN8n(payload: Record<string, unknown>): Promise<{ output?: string }> {
+  const response = await fetch(config.n8nWebhookUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify([payload]),
+  });
+
+  if (!response.ok) {
+    throw new Error(`n8n responded with status ${response.status}`);
+  }
+
+  return response.json() as Promise<{ output?: string }>;
+}
+
+// POST /api/act/chat — Analyse content via n8n (text/image) or OpenAI (video)
 router.post('/chat', optionalAuth, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const userId = req.user!.userId;
 
-    // Check rate limit
     const rateCheck = await checkRateLimit(userId);
 
     if (!rateCheck.allowed) {
@@ -166,7 +129,7 @@ router.post('/chat', optionalAuth, async (req: AuthenticatedRequest, res: Respon
     const sid = sessionId || 'unknown';
     let output: string;
 
-    // --- Video processing — always stateless (each upload is a fresh analysis) ---
+    // --- Video processing — kept on OpenAI for internal/testing use; not exposed in user UI ---
     if (videoData) {
       const frames = await extractFrames(videoData);
 
@@ -192,7 +155,7 @@ router.post('/chat', optionalAuth, async (req: AuthenticatedRequest, res: Respon
       return;
     }
 
-    // --- Image processing — routed via n8n to avoid OpenAI content moderation refusals ---
+    // --- Image processing — routed via n8n ---
     if (imageData) {
       const n8nPayload = {
         action: 'sendMessage',
@@ -208,42 +171,22 @@ router.post('/chat', optionalAuth, async (req: AuthenticatedRequest, res: Respon
         }],
       };
 
-      const n8nResponse = await fetch(config.n8nWebhookUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify([n8nPayload]),
-      });
-
-      if (!n8nResponse.ok) {
-        throw new Error(`n8n responded with status ${n8nResponse.status}`);
-      }
-
-      const n8nData = await n8nResponse.json() as { output?: string };
+      const n8nData = await sendToN8n(n8nPayload);
       output = n8nData?.output || 'Could not analyze the image.';
       await recordSubmission(userId, sid, 'image');
       res.json({ output });
       return;
     }
 
-    // --- Text processing — uses conversation history for contextual follow-ups ---
-    // Wrap content submissions in analysis framing to prevent content moderation
-    // refusals. For questions/follow-ups, send as-is so Q&A mode is preserved.
-    const isQuestion = /^(what|how|why|who|when|where|explain|tell|expand|describe|can you|could you|is |are |do |does |\?)/i.test(chatInput.trim()) || chatInput.includes('?');
-    const textPrompt = isQuestion
-      ? chatInput
-      : `Text analysis request for the ACT hate-speech detection system. Analyse the following submission using the IHRA framework as defined in your system instructions and produce the IHRA output format. If no antisemitic content is found, use the not-antisemitic output format. Submission to analyse: "${chatInput}"`;
+    // --- Text processing — routed via n8n ---
+    const n8nPayload = {
+      action: 'sendMessage',
+      sessionId: sid,
+      chatInput,
+    };
 
-    const history = getHistory(sid);
-    const userContent: OpenAIContent[] = [
-      { type: 'text', text: textPrompt },
-    ];
-
-    output = await sendToOpenAI(userContent, history);
-
-    // Save the raw user input and assistant response to history (not the wrapped prompt,
-    // so follow-up references like "this analysis" resolve to the natural user text).
-    appendHistory(sid, chatInput, output);
-
+    const n8nData = await sendToN8n(n8nPayload);
+    output = n8nData?.output || 'Could not analyze the message.';
     await recordSubmission(userId, sid, 'text');
     res.json({ output });
 
