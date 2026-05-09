@@ -533,101 +533,126 @@ const Detect: React.FC = () => {
         }
         bubbleWidth = Math.min(bubbleWidth + 20, messageMaxWidth);
 
-        checkAndAddPage(bubbleHeight + 5);
-
         // Position based on sender (WhatsApp style)
         const bubbleX = isUser ? pageWidth - margin - bubbleWidth : margin;
 
-        // Draw message bubble with WhatsApp styling
-        if (isUser) {
-          pdf.setFillColor(userBubbleColor.r, userBubbleColor.g, userBubbleColor.b);
-        } else {
-          pdf.setFillColor(aiBubbleColor.r, aiBubbleColor.g, aiBubbleColor.b);
-          // Add subtle border for AI messages
-          pdf.setDrawColor(229, 229, 229);
-          pdf.setLineWidth(0.5);
-        }
+        // Render the bubble across one or more pages, splitting if it doesn't fit
+        // on the remaining page space. Each page draws its own bubble rectangle and
+        // the timestamp + verdict badge appear only on the first/last chunks.
+        const verdictColors: Record<string, { r: number; g: number; b: number; label: string }> = {
+          'antisemitic': { r: 220, g: 38, b: 38, label: 'Antisemitic' },
+          'potentially antisemitic': { r: 249, g: 115, b: 22, label: 'Potentially Antisemitic' },
+          'not antisemitic': { r: 22, g: 163, b: 74, label: 'Not Antisemitic' },
+          'inconclusive': { r: 107, g: 114, b: 128, label: 'Inconclusive' },
+        };
 
-        // Draw rounded rectangle
-        pdf.roundedRect(bubbleX, yPosition, bubbleWidth, bubbleHeight, 3, 3, isUser ? 'F' : 'FD');
+        let lineIdx = 0;
+        let isFirstChunk = true;
+        const topPadding = 10;
+        const bottomPadding = 10;
 
-        // Add verdict badge for IHRA responses
-        let textY = yPosition + 10;
-        if (isIHRA) {
-          const verdictColors: Record<string, { r: number; g: number; b: number; label: string }> = {
-            'antisemitic': { r: 220, g: 38, b: 38, label: 'Antisemitic' },
-            'potentially antisemitic': { r: 249, g: 115, b: 22, label: 'Potentially Antisemitic' },
-            'not antisemitic': { r: 22, g: 163, b: 74, label: 'Not Antisemitic' },
-            'inconclusive': { r: 107, g: 114, b: 128, label: 'Inconclusive' },
-          };
-          const vc = verdictColors[verdict];
-          // Draw verdict label
-          pdf.setFontSize(7);
-          pdf.setFont('helvetica', 'normal');
-          pdf.setTextColor(107, 114, 128);
-          pdf.text('VERDICT', bubbleX + 10, textY);
-          // Draw verdict pill
-          const pillX = bubbleX + 10 + pdf.getTextWidth('VERDICT') + 3;
-          pdf.setFontSize(8);
-          pdf.setFont('helvetica', 'bold');
-          const pillWidth = pdf.getTextWidth(vc.label) + 8;
-          pdf.setFillColor(vc.r, vc.g, vc.b);
-          pdf.roundedRect(pillX, textY - 4, pillWidth, 6, 2, 2, 'F');
-          pdf.setTextColor(255, 255, 255);
-          pdf.text(vc.label, pillX + 4, textY);
-          pdf.setFont('helvetica', 'normal');
-          textY += verdictHeight;
-        }
-
-        // Add message text with bold support
-        pdf.setFontSize(10);
-        // Match app text colors
-        if (isUser) {
-          pdf.setTextColor(255, 255, 255); // White text for user messages
-        } else {
-          pdf.setTextColor(31, 41, 55); // Gray-800 for AI messages
-        }
-
-        for (const line of wrappedBold) {
-          // Add extra spacing for empty lines (section breaks)
-          if (line.trim() === '') {
-            textY += 2;
-            continue;
+        while (lineIdx < wrappedBold.length) {
+          // If barely any space left on the current page, jump to a new page first
+          if (yPosition + topPadding + lineHeight + bottomPadding > pageHeight - margin) {
+            pdf.addPage();
+            pdf.setFillColor(backgroundColor.r, backgroundColor.g, backgroundColor.b);
+            pdf.rect(0, 0, pageWidth, pageHeight, 'F');
+            yPosition = margin;
           }
-          // Render line with bold segments
-          const segments = line.split(/(\*\*[^*]+\*\*)/g);
-          let xPos = bubbleX + 10;
-          for (const segment of segments) {
-            if (segment.startsWith('**') && segment.endsWith('**')) {
-              // Bold segment
-              const boldText = segment.slice(2, -2);
-              pdf.setFont('helvetica', 'bold');
-              pdf.text(boldText, xPos, textY);
-              xPos += pdf.getTextWidth(boldText);
-              pdf.setFont('helvetica', 'normal');
-            } else if (segment) {
-              // Normal segment
-              pdf.setFont('helvetica', 'normal');
-              pdf.text(segment, xPos, textY);
-              xPos += pdf.getTextWidth(segment);
+
+          const chunkVerdictHeight = (isFirstChunk && isIHRA) ? verdictHeight : 0;
+          const availableHeight = (pageHeight - margin) - yPosition - bottomPadding - topPadding - chunkVerdictHeight;
+          const linesThatFit = Math.max(1, Math.floor(availableHeight / lineHeight));
+          const chunkLines = wrappedBold.slice(lineIdx, lineIdx + linesThatFit);
+          const isLastChunk = lineIdx + chunkLines.length >= wrappedBold.length;
+
+          // Compute exact chunk height including empty-line spacing
+          let chunkContentHeight = 0;
+          for (const line of chunkLines) {
+            chunkContentHeight += line.trim() === '' ? 2 : lineHeight;
+          }
+          const chunkBubbleHeight = chunkContentHeight + topPadding + bottomPadding + chunkVerdictHeight;
+
+          // Draw bubble for this chunk
+          if (isUser) {
+            pdf.setFillColor(userBubbleColor.r, userBubbleColor.g, userBubbleColor.b);
+          } else {
+            pdf.setFillColor(aiBubbleColor.r, aiBubbleColor.g, aiBubbleColor.b);
+            pdf.setDrawColor(229, 229, 229);
+            pdf.setLineWidth(0.5);
+          }
+          pdf.roundedRect(bubbleX, yPosition, bubbleWidth, chunkBubbleHeight, 3, 3, isUser ? 'F' : 'FD');
+
+          let textY = yPosition + topPadding;
+
+          // Draw verdict badge only on first chunk of an IHRA message
+          if (isFirstChunk && isIHRA) {
+            const vc = verdictColors[verdict];
+            pdf.setFontSize(7);
+            pdf.setFont('helvetica', 'normal');
+            pdf.setTextColor(107, 114, 128);
+            pdf.text('VERDICT', bubbleX + 10, textY);
+            const pillX = bubbleX + 10 + pdf.getTextWidth('VERDICT') + 3;
+            pdf.setFontSize(8);
+            pdf.setFont('helvetica', 'bold');
+            const pillWidth = pdf.getTextWidth(vc.label) + 8;
+            pdf.setFillColor(vc.r, vc.g, vc.b);
+            pdf.roundedRect(pillX, textY - 4, pillWidth, 6, 2, 2, 'F');
+            pdf.setTextColor(255, 255, 255);
+            pdf.text(vc.label, pillX + 4, textY);
+            pdf.setFont('helvetica', 'normal');
+            textY += verdictHeight;
+          }
+
+          // Render lines in this chunk
+          pdf.setFontSize(10);
+          if (isUser) {
+            pdf.setTextColor(255, 255, 255);
+          } else {
+            pdf.setTextColor(31, 41, 55);
+          }
+
+          for (const line of chunkLines) {
+            if (line.trim() === '') {
+              textY += 2;
+              continue;
             }
+            const segments = line.split(/(\*\*[^*]+\*\*)/g);
+            let xPos = bubbleX + 10;
+            for (const segment of segments) {
+              if (segment.startsWith('**') && segment.endsWith('**')) {
+                const boldText = segment.slice(2, -2);
+                pdf.setFont('helvetica', 'bold');
+                pdf.text(boldText, xPos, textY);
+                xPos += pdf.getTextWidth(boldText);
+                pdf.setFont('helvetica', 'normal');
+              } else if (segment) {
+                pdf.setFont('helvetica', 'normal');
+                pdf.text(segment, xPos, textY);
+                xPos += pdf.getTextWidth(segment);
+              }
+            }
+            textY += lineHeight;
           }
-          textY += lineHeight;
+
+          // Timestamp only on the last chunk
+          if (isLastChunk) {
+            pdf.setFontSize(8);
+            if (isUser) {
+              pdf.setTextColor(219, 234, 254);
+            } else {
+              pdf.setTextColor(156, 163, 175);
+            }
+            const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            const timeWidth = pdf.getTextWidth(time);
+            const timeX = isUser ? bubbleX + bubbleWidth - timeWidth - 5 : bubbleX + 5;
+            pdf.text(time, timeX, yPosition + chunkBubbleHeight - 5);
+          }
+
+          yPosition += chunkBubbleHeight + 5;
+          lineIdx += chunkLines.length;
+          isFirstChunk = false;
         }
-        
-        // Add timestamp
-        pdf.setFontSize(8);
-        if (isUser) {
-          pdf.setTextColor(219, 234, 254); // Blue-100 for user timestamps
-        } else {
-          pdf.setTextColor(156, 163, 175); // Gray-400 for AI timestamps
-        }
-        const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        const timeWidth = pdf.getTextWidth(time);
-        const timeX = isUser ? bubbleX + bubbleWidth - timeWidth - 5 : bubbleX + 5;
-        pdf.text(time, timeX, yPosition + bubbleHeight - 5);
-        
-        yPosition += bubbleHeight + 5;
       }
     }
 

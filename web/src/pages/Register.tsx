@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Check, AlertCircle, ArrowLeft, Shield, Users, Zap, Globe } from 'lucide-react';
+import { Check, AlertCircle, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 
 const Register: React.FC = () => {
@@ -63,7 +63,7 @@ const Register: React.FC = () => {
       }}
     >
       <div className="container mx-auto px-4 md:px-6 pt-24 sm:pt-32 pb-16">
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-xl mx-auto">
           {/* Back button */}
           <Link
             to="/"
@@ -82,7 +82,7 @@ const Register: React.FC = () => {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
+          <div className="space-y-8">
             <div className="bg-white rounded-xl shadow-2xl p-8">
               {isSubmitted ? (
                 <div className="text-center py-8">
@@ -103,7 +103,9 @@ const Register: React.FC = () => {
                 </div>
               ) : (
                 <>
-                  <h2 className="text-2xl font-bold text-gray-900 mb-6">Create Your Account</h2>
+                  <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center">
+                    Create your account for free access to use the ACT
+                  </h2>
                   <form onSubmit={handleSubmit} className="space-y-6">
                     <div>
                       <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
@@ -150,72 +152,21 @@ const Register: React.FC = () => {
                     >
                       {isSubmitting ? 'Creating Account...' : 'Join CAAI'}
                     </button>
+
+                    <p className="text-xs text-gray-500 text-center leading-relaxed">
+                      Disclaimer: Registration to use the ACT implies acceptance of the fact that the ACT, in it's current Beta version, can give variable results which may not always be accurate. The tool is therefore for guidance only and CAAI take no responsibility for how users employ results.
+                    </p>
                   </form>
                 </>
               )}
             </div>
 
-            <div className="space-y-8">
-              <div>
-                <h3 className="text-2xl font-bold text-white mb-6">What You'll Get</h3>
-                <div className="space-y-6">
-                  <div className="flex items-start">
-                    <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-blue-600 flex items-center justify-center mr-4">
-                      <Zap className="w-6 h-6 text-white" />
-                    </div>
-                    <div>
-                      <h4 className="text-lg font-semibold text-white mb-2">Free Access to ACT Tool</h4>
-                      <p className="text-blue-100">
-                        Use our Antisemitism Checker Tool to analyze text and images for antisemitic content with advanced AI detection.
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start">
-                    <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-blue-600 flex items-center justify-center mr-4">
-                      <Users className="w-6 h-6 text-white" />
-                    </div>
-                    <div>
-                      <h4 className="text-lg font-semibold text-white mb-2">Community Access</h4>
-                      <p className="text-blue-100">
-                        Join our forum of AI leaders, academics, professionals, and advocates working together to combat antisemitism.
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start">
-                    <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-blue-600 flex items-center justify-center mr-4">
-                      <Shield className="w-6 h-6 text-white" />
-                    </div>
-                    <div>
-                      <h4 className="text-lg font-semibold text-white mb-2">Early Access</h4>
-                      <p className="text-blue-100">
-                        Be the first to try new AI tools and features as we develop advanced solutions for combating hate speech.
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start">
-                    <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-blue-600 flex items-center justify-center mr-4">
-                      <Globe className="w-6 h-6 text-white" />
-                    </div>
-                    <div>
-                      <h4 className="text-lg font-semibold text-white mb-2">Regular Updates</h4>
-                      <p className="text-blue-100">
-                        Receive weekly updates on our initiatives, research findings, and the latest developments in AI-powered hate speech detection.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-gray-800 bg-opacity-50 rounded-lg p-6">
-                <h4 className="text-lg font-semibold text-white mb-3">Privacy & Security</h4>
-                <p className="text-blue-100 text-sm">
-                  We take your privacy seriously. Your email will only be used for CAAI updates and tool access.
-                  We never share your information with third parties and you can unsubscribe at any time.
-                </p>
-              </div>
+            <div className="bg-gray-800 bg-opacity-50 rounded-lg p-6">
+              <h4 className="text-lg font-semibold text-white mb-3 text-center">Privacy & Security</h4>
+              <p className="text-blue-100 text-sm text-center">
+                We take your privacy seriously. Your email will only be used for CAAI updates and tool access.
+                We never share your information with third parties and you can unsubscribe at any time.
+              </p>
             </div>
           </div>
         </div>
