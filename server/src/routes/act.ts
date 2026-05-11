@@ -106,6 +106,16 @@ router.post('/chat', optionalAuth, async (req: AuthenticatedRequest, res: Respon
     const rateCheck = await checkRateLimit(userId);
 
     if (!rateCheck.allowed) {
+      // resetInMinutes === 0 with allowed: false means the user record is missing
+      // or the account has been marked inactive — not a rate-limit hit. Distinguish
+      // these so users know to contact support rather than wait.
+      if (rateCheck.resetInMinutes <= 0) {
+        res.status(403).json({
+          error: 'Your account is currently inactive. Please contact CAAI support to restore access.',
+        });
+        return;
+      }
+
       const hours = Math.floor(rateCheck.resetInMinutes / 60);
       const mins = rateCheck.resetInMinutes % 60;
       const timeStr = hours > 0
