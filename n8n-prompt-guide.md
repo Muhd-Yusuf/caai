@@ -455,33 +455,51 @@ d) Emotive elements designed to evoke fear or moral outrage against Jews based o
 
 **IMPORTANT — Output formatting:** Blood libel is NOT a separate section header in the output. NEVER create a "**Blood Libel Allegations:**" or "**Blood Libel:**" section. Instead, blood libel analysis MUST be included within the body of **Classic Antisemitism Symbols** (as the primary violation — blood libel is one of the most enduring antisemitic tropes) and, where the content attributes the alleged act to Jews as a group rather than a specific individual, also within **Collective Blame**.
 
-### Inverted Red Triangle (🔻) — Contextual Assessment Required
+### Inverted Red Triangle (🔻) — MANDATORY ANTISEMITIC CLASSIFICATION IN PROTEST/ACTIVISM CONTEXT
 
-The downward-pointing red triangle is a symbol used by Hamas's military wing (Al-Qassam Brigades) in propaganda videos to mark Israeli military targets for attack. It has been flagged by multiple organisations including the Anti-Defamation League (ADL) as a modern antisemitic symbol. Because the symbol's primary public meaning is its association with Hamas military targeting, its appearance in conflict-adjacent contexts — including political demonstrations and pro-Palestinian activism — carries antisemitic implications and must be assessed accordingly.
+The downward-pointing red triangle is a symbol used by Hamas's military wing (Al-Qassam Brigades) in propaganda videos to mark Israeli military targets for attack. It has been flagged by the Anti-Defamation League (ADL) and other monitoring organisations as a modern antisemitic symbol. The symbol's primary public meaning is its association with Hamas military targeting of Jews and Israelis.
 
-**Step 1 — Confirm presence:** Identify any red downward-pointing triangle. Verify shape, colour, and orientation (pointing downward) clearly before proceeding.
+**ABSOLUTE RULE — READ THIS BEFORE EVALUATING ANY IMAGE CONTAINING A RED INVERTED TRIANGLE:**
 
-**Step 2 — Assess context using these indicators:**
+Whenever the inverted red triangle appears in ANY of the following contexts, the verdict MUST be "is antisemitic". You are NOT permitted to return "is not antisemitic" or "Verdict: Inconclusive." in these cases:
 
-- **Military or targeting context:** Symbol used as a target marker — on maps, combat footage, weapon scopes, overlaid on images of Israeli soldiers, Jewish institutions, or Israeli infrastructure. This is the primary antisemitic use and must be flagged.
-- **Graffiti on Jewish property:** Symbol appearing on Jewish homes, synagogues, or community institutions — indicates targeted intimidation.
-- **Associated text or symbols:** Surrounding text, hashtags, or imagery linking the triangle to Hamas, Al-Qassam Brigades, calls for violence, or antisemitic slogans strengthens the antisemitic classification.
-- **Political demonstration / pro-Palestinian activism context:** When the inverted red triangle is displayed at political demonstrations, protests, or rallies alongside Palestinian flags, keffiyehs, or related activism imagery, it carries antisemitic implications. Because the symbol is a known Hamas military targeting marker, its public display in this context — whether worn, held, or shown on signage — directly or indirectly endorses violence against Jews and Israel. This is to be classified as antisemitic under Rule 9 (Classic Antisemitism Symbols) and Rule 1 (Harm or Violence), even where no explicit violent text or targeting graphic accompanies the symbol. The symbol's known meaning supplies the violent context. Document the demonstration setting and the symbol's display in the analysis.
-- **Isolated geometric use:** Red inverted triangle as a decorative or abstract graphic element with no conflict symbolism, no Palestinian flag imagery, no protest setting, and no targeting context — do not classify as antisemitic.
+1. Displayed at a political demonstration, protest, march, or rally — whether worn, held, painted on signage, on clothing, on face masks, or as a backdrop graphic
+2. Displayed alongside Palestinian flags, keffiyehs, or pro-Palestinian activism imagery
+3. Displayed alongside calls for resistance, liberation rhetoric, or anti-Israel slogans
+4. Used as graffiti on Jewish homes, synagogues, schools, businesses, or community institutions
+5. Used as a target marker overlaid on Israeli soldiers, Jewish people, Jewish institutions, or Israeli infrastructure
+6. Accompanied by text, hashtags, or imagery linking it to Hamas, Al-Qassam Brigades, or calls for violence against Jews/Israelis
 
-**Step 3 — IHRA rule assessment:**
-- **Harm or Violence (Rule 1):** Violated when the symbol explicitly or implicitly marks targets for violent attack against Jews or Israelis, glorifies such violence, OR appears at a political demonstration / pro-Palestinian activism context where its known meaning as a Hamas targeting marker endorses violence by association.
-- **Classic Antisemitism Symbols (Rule 9):** Violated when the symbol functions as a coded emblem for Hamas targeting of Jews or Israeli civilians — including its display at protests and political demonstrations.
-- **Stereotypical Allegations (Rule 2):** May also be violated if the symbol is used to single out Jews or Israelis as inherent enemies or legitimate targets of violence.
+In all of the above, the symbol's known meaning as a Hamas military targeting marker DIRECTLY ENDORSES violence against Jews and Israel. The context does the work — no explicit violent text or targeting graphic needs to accompany the symbol for it to qualify.
 
-**Step 4 — Verdict:**
-- "is antisemitic" — when the symbol supports, glorifies, or directs violence against Jews or Israelis, OR is displayed at a political demonstration alongside Palestinian flags / activism imagery (which carries antisemitic implications under Step 2).
-- "is not antisemitic" — only if the symbol is a generic geometric shape with no antisemitic, conflict-adjacent, or violent context whatsoever.
-- "Verdict: Inconclusive." — reserved for genuinely ambiguous cases that fit none of the categories above.
+**Step 1 — Confirm presence:** Identify any red downward-pointing triangle. Verify shape, colour, and orientation (pointing downward).
 
-**Recommended phrasing for the protest/demonstration scenario** (use this or a close variant in the Classic Antisemitism Symbols section): "The red triangle, known to be a Hamas military targeting symbol, when displayed in political demonstrations alongside Palestinian flags and related activism, has antisemitic implications, and may directly or indirectly endorse violence against Jews and Israel."
+**Step 2 — Identify context. If ANY of conditions 1–6 above are met, proceed directly to Step 4 with verdict "is antisemitic". Do NOT seek further qualifying evidence.**
 
-**IMPORTANT:** Do not classify the inverted red triangle as antisemitic on the basis of its presence alone in a non-conflict context (e.g., abstract design). But where it appears at protests, demonstrations, or alongside Palestinian flag imagery, the conflict-adjacent context combined with the symbol's known Hamas association is sufficient to classify as antisemitic. Always document the visual elements, text, and narrative context that inform the verdict.
+**Step 3 — Only if NONE of conditions 1–6 are met:**
+
+- **Isolated geometric use:** Red inverted triangle as a decorative or abstract graphic element with no protest setting, no Palestinian flag imagery, no conflict-adjacent context, and no targeting use — do not classify as antisemitic.
+- If genuinely ambiguous and fits no other category, return "Verdict: Inconclusive."
+
+**Step 4 — IHRA rule assessment (when classification is antisemitic):**
+- **Classic Antisemitism Symbols (Rule 9):** Always violated. The symbol functions as a coded emblem for Hamas targeting of Jews and Israelis, including at protests, demonstrations, and any pro-Palestinian activism setting.
+- **Harm or Violence (Rule 1):** Always violated when displayed in any context from conditions 1–6. The symbol's known meaning as a targeting marker endorses violence by association, regardless of accompanying text.
+- **Stereotypical Allegations (Rule 2):** Often also violated when the symbol is used to single out Jews or Israelis as inherent enemies or legitimate targets.
+
+**MANDATORY phrasing for the Classic Antisemitism Symbols section in protest/demonstration outputs** (use this verbatim, or a close variant that preserves the same definitive language):
+
+> "The red triangle, known to be a Hamas military targeting symbol, when displayed in political demonstrations alongside Palestinian flags, keffiyehs, and related activism, such as calls for resistance, is antisemitic and directly endorses violence against Jews and Israel."
+
+Do NOT soften this to "carries antisemitic implications", "may endorse", "could be considered", or similar hedged language. The conclusion is definitive: it IS antisemitic and DIRECTLY endorses violence.
+
+**FORBIDDEN OUTCOMES — never produce these for a protest/activism red-triangle image:**
+- "is not antisemitic"
+- "Verdict: Inconclusive."
+- "appears to express political solidarity rather than promote hatred"
+- "without explicit violent context the symbol does not automatically trigger antisemitic classification"
+- Any phrasing that defers the verdict pending additional evidence beyond the protest/activism context itself
+
+If your analysis is producing one of these outcomes for a red triangle at a protest, you have made an error — re-read the ABSOLUTE RULE above and reclassify.
 
 ### Key Rule Distinctions
 - Rule 3 vs Rule 11: Rule 3 = general collective blame of Jews as a people. Rule 11 = ONLY when content blames Jews collectively for actions of the State of Israel.
