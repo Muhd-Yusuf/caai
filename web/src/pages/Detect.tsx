@@ -386,10 +386,6 @@ const Detect: React.FC = () => {
           const label = message.content.fileSize ? `[Video]  ${message.content.fileSize}` : '[Video]';
           pdf.text(label, bubbleX + 5, yPosition + 5 + imgHeight + 7);
 
-          pdf.setFontSize(8);
-          const timeWidth2 = pdf.getTextWidth(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
-          pdf.text(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), bubbleX + bubbleWidth - timeWidth2 - 5, yPosition + bubbleHeight - 3);
-
           yPosition += bubbleHeight + 5;
         } catch {
           // Fallback: just show a placeholder
@@ -429,11 +425,8 @@ const Detect: React.FC = () => {
           imgWidth = imgWidth * ratio;
           imgHeight = imgHeight * ratio;
 
-          // Tight 2px padding — timestamp sits inline at bottom-right of image
+          // Tight 2px padding around the image
           const pad = 2;
-          const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-          pdf.setFontSize(7);
-          const timeW = pdf.getTextWidth(timeStr);
           const bubbleWidth = imgWidth + pad * 2;
           const bubbleHeight = imgHeight + pad * 2;
 
@@ -449,11 +442,6 @@ const Detect: React.FC = () => {
 
           pdf.roundedRect(bubbleX, yPosition, bubbleWidth, bubbleHeight, 2, 2, 'F');
           pdf.addImage(imgDataUrl, bubbleX + pad, yPosition + pad, imgWidth, imgHeight);
-
-          // Timestamp inline at bottom-right, overlaid on image
-          pdf.setFontSize(7);
-          pdf.setTextColor(255, 255, 255);
-          pdf.text(timeStr, bubbleX + bubbleWidth - timeW - pad - 1, yPosition + bubbleHeight - pad);
 
           yPosition += bubbleHeight + 5;
           
@@ -538,7 +526,7 @@ const Detect: React.FC = () => {
 
         // Render the bubble across one or more pages, splitting if it doesn't fit
         // on the remaining page space. Each page draws its own bubble rectangle and
-        // the timestamp + verdict badge appear only on the first/last chunks.
+        // the verdict badge appears only on the first chunk.
         const verdictColors: Record<string, { r: number; g: number; b: number; label: string }> = {
           'antisemitic': { r: 220, g: 38, b: 38, label: 'Antisemitic' },
           'potentially antisemitic': { r: 249, g: 115, b: 22, label: 'Potentially Antisemitic' },
@@ -549,7 +537,7 @@ const Detect: React.FC = () => {
         let lineIdx = 0;
         let isFirstChunk = true;
         const topPadding = 10;
-        const bottomPadding = 10;
+        const bottomPadding = 6;
 
         while (lineIdx < wrappedBold.length) {
           // If barely any space left on the current page, jump to a new page first
@@ -564,7 +552,6 @@ const Detect: React.FC = () => {
           const availableHeight = (pageHeight - margin) - yPosition - bottomPadding - topPadding - chunkVerdictHeight;
           const linesThatFit = Math.max(1, Math.floor(availableHeight / lineHeight));
           const chunkLines = wrappedBold.slice(lineIdx, lineIdx + linesThatFit);
-          const isLastChunk = lineIdx + chunkLines.length >= wrappedBold.length;
 
           // Compute exact chunk height including empty-line spacing
           let chunkContentHeight = 0;
@@ -633,20 +620,6 @@ const Detect: React.FC = () => {
               }
             }
             textY += lineHeight;
-          }
-
-          // Timestamp only on the last chunk
-          if (isLastChunk) {
-            pdf.setFontSize(8);
-            if (isUser) {
-              pdf.setTextColor(219, 234, 254);
-            } else {
-              pdf.setTextColor(156, 163, 175);
-            }
-            const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            const timeWidth = pdf.getTextWidth(time);
-            const timeX = isUser ? bubbleX + bubbleWidth - timeWidth - 5 : bubbleX + 5;
-            pdf.text(time, timeX, yPosition + chunkBubbleHeight - 5);
           }
 
           yPosition += chunkBubbleHeight + 5;

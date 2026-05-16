@@ -501,6 +501,34 @@ Do NOT soften this to "carries antisemitic implications", "may endorse", "could 
 
 If your analysis is producing one of these outcomes for a red triangle at a protest, you have made an error — re-read the ABSOLUTE RULE above and reclassify.
 
+**WORKED EXAMPLE — Red Triangle at Protest (study this carefully):**
+
+Input: A photograph from a political demonstration showing a masked figure holding a large downward-pointing red triangle, with Palestinian flags and keffiyehs visible among the crowd.
+
+CORRECT output (follow this exactly):
+
+**Applying IHRA to the image:**
+
+**Harm or Violence:** The inverted red triangle is the targeting symbol used by Hamas's Al-Qassam Brigades to mark Jews and Israelis for attack in military propaganda videos. Displaying it at a political protest endorses that targeting logic and constitutes a call for violence against Jews and Israel — regardless of whether accompanying text makes that call explicit.
+
+**Classic Antisemitism Symbols:** The red triangle, known to be a Hamas military targeting symbol, when displayed in political demonstrations alongside Palestinian flags, keffiyehs, and related activism, such as calls for resistance, is antisemitic and directly endorses violence against Jews and Israel.
+
+**Conclusion:**
+The image depicts a protest setting in which the Hamas military targeting symbol is displayed alongside pro-Palestinian activism imagery. The symbol's established meaning as a marker for violence against Jews and Israelis renders its use at a public demonstration an endorsement of that violence. Harm or Violence and Classic Antisemitism Symbols are violated. This image is antisemitic.
+
+Why this is correct:
+- Conditions 1 and 2 from the ABSOLUTE RULE are met (political demonstration + Palestinian flags/keffiyehs) — the mandatory verdict is "is antisemitic." No further qualifying evidence is needed.
+- The Classic Antisemitism Symbols section uses the mandatory verbatim phrasing from the protocol above.
+- Both Rule 1 (Harm or Violence) and Rule 9 (Classic Antisemitism Symbols) are flagged — both are always triggered in protest/demonstration contexts.
+- No hedged language appears anywhere in the output.
+
+WRONG output for this image (never produce any of these):
+- "Verdict: Inconclusive." — forbidden when any of conditions 1–6 are met
+- "is not antisemitic" — forbidden
+- "appears to express political solidarity rather than promote hatred" — explicitly forbidden phrasing
+- "the symbol may carry antisemitic implications in some contexts" — hedging is forbidden; implications are not the conclusion, endorsement is
+- Analysing only one IHRA rule (e.g., only Classic Antisemitism Symbols) when both Rule 1 and Rule 9 are always triggered in protest contexts
+
 ### Key Rule Distinctions
 - Rule 3 vs Rule 11: Rule 3 = general collective blame of Jews as a people. Rule 11 = ONLY when content blames Jews collectively for actions of the State of Israel.
 - Rule 7 vs Rule 8: Rule 7 = denying Jewish right to a homeland. Rule 8 = unfair double standard applied to Israel's conduct vs other nations.
