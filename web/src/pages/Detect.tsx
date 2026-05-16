@@ -28,6 +28,11 @@ const Detect: React.FC = () => {
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   // Track which video elements have already been autoplayed to prevent replay on re-render
   const playedVideos = useRef<WeakSet<HTMLVideoElement>>(new WeakSet());
+  // Last submitted image (data URL), kept so we can re-attach it when the user
+  // asks to "reevaluate last image" without sending a new one. n8n's session
+  // memory occasionally drops the prior attachment; re-sending the bytes
+  // guarantees the request always lands as a fresh image submission.
+  const lastImageRef = useRef<string | null>(null);
 
   const createLoadingElement = () => (
     <div className="flex justify-start mb-4">
@@ -156,12 +161,35 @@ const Detect: React.FC = () => {
     reader.readAsDataURL(file);
   }, []);
 
+  // Detects messages that reference the previously-submitted image and request
+  // a re-analysis. When matched and a last image is available, the client
+  // re-attaches the image bytes so the request reaches the prompt as a fresh
+  // image submission (regardless of n8n session memory state).
+  const isReanalysisRequest = (text: string): boolean => {
+    const t = text.toLowerCase();
+    if (/\b(last|previous|prior|earlier|the)\s+(image|picture|photo|frame|submission|attachment)\b/.test(t)) return true;
+    if (/\bre[-\s]?(evaluat|analy[sz]|assess|examin|check|classif|review)(e|ed|es|ing)?\b/.test(t)) return true;
+    if (/\b(evaluat|analy[sz]|assess|examin|check|classif|review)\w*\s+(it|this|that|again|once\s+more)\b/.test(t)) return true;
+    return false;
+  };
+
   const sendMessage = async (content: string, type = 'text', fileSize?: string) => {
+    // Intercept text messages that look like "reevaluate last image" and
+    // silently re-attach the stored image, with the user's text as chatInput.
+    if (type === 'text' && lastImageRef.current && isReanalysisRequest(content)) {
+      await sendReanalysisRequest(content, lastImageRef.current);
+      return;
+    }
+
     const message = { content, type, fileSize };
     setMessages(prev => [...prev, { content: message, isUser: true }]);
     setIsLoading(true);
     toggleInputs(true);
     setHasInteracted(true); // Enable share button after first interaction
+
+    if (type === 'image') {
+      lastImageRef.current = content;
+    }
 
     const payload: Record<string, unknown> = {
       sessionId,
@@ -173,6 +201,49 @@ const Detect: React.FC = () => {
     } else if (type === 'video') {
       payload.videoData = content;
     }
+
+    try {
+      setRateLimitMessage(null);
+      const data = await api.post<{ output: string }>('/act/chat', payload);
+
+      if (!data || !data.output) {
+        throw new Error('Invalid response format from server');
+      }
+
+      setMessages(prev => [...prev, {
+        content: { content: data.output, type: 'text' },
+        isUser: false,
+      }]);
+    } catch (error: any) {
+      console.error('Error sending message:', error);
+      if (error.status === 429) {
+        setRateLimitMessage(error.message);
+        setMessages(prev => [...prev, {
+          content: { content: error.message, type: 'text' },
+          isUser: false,
+        }]);
+      } else {
+        setMessages(prev => [...prev, {
+          content: { content: `Error: ${error.message || 'An unexpected error occurred'}`, type: 'text' },
+          isUser: false,
+        }]);
+      }
+    } finally {
+      setIsLoading(false);
+      toggleInputs(false);
+    }
+  };
+
+  // Sends a re-analysis request: shows the user's text as a normal text bubble
+  // (no image bubble — the image is already visible earlier in the conversation)
+  // but transmits the stored image alongside the user's question.
+  const sendReanalysisRequest = async (userText: string, imageData: string) => {
+    setMessages(prev => [...prev, { content: { type: 'text', content: userText }, isUser: true }]);
+    setIsLoading(true);
+    toggleInputs(true);
+    setHasInteracted(true);
+
+    const payload = { sessionId, chatInput: userText, imageData };
 
     try {
       setRateLimitMessage(null);
@@ -816,6 +887,7 @@ const Detect: React.FC = () => {
                         isUser: false
                       }]);
                       setHasInteracted(false);
+                      lastImageRef.current = null;
                     }}
                     className="bg-gray-200 hover:bg-gray-300 text-gray-600 text-xs sm:text-sm px-3 py-1.5 rounded-lg transition-colors"
                   >
