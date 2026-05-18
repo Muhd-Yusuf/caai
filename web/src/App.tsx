@@ -11,6 +11,7 @@ import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminConfig from './pages/admin/AdminConfig';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminRoute from './components/AdminRoute';
+import FreshTabGate, { SessionFlagger } from './components/FreshTabGate';
 import { AuthProvider } from './contexts/AuthContext';
 import { AdminAuthProvider } from './contexts/AdminAuthContext';
 
@@ -20,6 +21,7 @@ function App() {
       <AuthProvider>
         <AdminAuthProvider>
           <div className="min-h-screen bg-white">
+            <SessionFlagger />
             <Header />
             <Routes>
               <Route path="/" element={<Home />} />
@@ -27,7 +29,9 @@ function App() {
                 path="/detect"
                 element={
                   <ProtectedRoute>
-                    <Detect />
+                    <FreshTabGate>
+                      <Detect />
+                    </FreshTabGate>
                   </ProtectedRoute>
                 }
               />

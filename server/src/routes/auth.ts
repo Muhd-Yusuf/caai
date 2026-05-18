@@ -8,7 +8,11 @@ import { AuthenticatedRequest, AdminRequest } from '../types';
 
 const router = Router();
 
-// POST /api/auth/register — Register user (name + email), set JWT cookie
+// POST /api/auth/register — Register user (name + email), set JWT cookie.
+// Doubles as login for existing users: if the email already exists and the
+// account is active, the JWT cookie is re-issued so the user can use the tool
+// on the new device. Lookups are case-insensitive and whitespace-trimmed so
+// records created via admin or different casing still resolve correctly.
 router.post('/register', async (req: Request, res: Response) => {
   try {
     const { name, email } = req.body;
@@ -19,21 +23,27 @@ router.post('/register', async (req: Request, res: Response) => {
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
+    const normalizedEmail = String(email).trim().toLowerCase();
+    if (!emailRegex.test(normalizedEmail)) {
       res.status(400).json({ error: 'Invalid email format' });
       return;
     }
 
-    // Check if email already exists
-    const { data: existing } = await supabase
+    // Case-insensitive lookup so a record stored with different casing still
+    // resolves (defensive against direct DB edits or admin tooling).
+    const { data: existing, error: lookupError } = await supabase
       .from('users')
       .select('id, name, email, is_active')
-      .eq('email', email.toLowerCase())
-      .single();
+      .ilike('email', normalizedEmail)
+      .maybeSingle();
+
+    if (lookupError) {
+      console.error('Existing user lookup error:', lookupError);
+    }
 
     if (existing) {
       if (!existing.is_active) {
-        res.status(403).json({ error: 'This account has been suspended' });
+        res.status(403).json({ error: 'This account has been suspended. Please contact CAAI support.' });
         return;
       }
 
@@ -51,7 +61,11 @@ router.post('/register', async (req: Request, res: Response) => {
         maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
       });
 
-      res.json({ user: { id: existing.id, name: existing.name, email: existing.email } });
+      console.log(`Existing user signed in: ${existing.email}`);
+      res.json({
+        user: { id: existing.id, name: existing.name, email: existing.email },
+        isReturning: true,
+      });
       return;
     }
 
@@ -59,8 +73,8 @@ router.post('/register', async (req: Request, res: Response) => {
     const { data: newUser, error } = await supabase
       .from('users')
       .insert({
-        name: name.trim(),
-        email: email.toLowerCase().trim(),
+        name: String(name).trim(),
+        email: normalizedEmail,
         created_by: 'self',
       })
       .select('id, name, email')
@@ -68,6 +82,12 @@ router.post('/register', async (req: Request, res: Response) => {
 
     if (error) {
       console.error('User creation error:', error);
+      // 23505 = unique violation: the email exists but our lookup missed it
+      // (race or unexpected casing). Surface a clearer message rather than 500.
+      if ((error as { code?: string }).code === '23505') {
+        res.status(409).json({ error: 'An account with this email already exists. Please use the same email address you registered with.' });
+        return;
+      }
       res.status(500).json({ error: 'Failed to create account' });
       return;
     }
@@ -85,7 +105,11 @@ router.post('/register', async (req: Request, res: Response) => {
       maxAge: 30 * 24 * 60 * 60 * 1000,
     });
 
-    res.status(201).json({ user: { id: newUser.id, name: newUser.name, email: newUser.email } });
+    console.log(`New user registered: ${newUser.email}`);
+    res.status(201).json({
+      user: { id: newUser.id, name: newUser.name, email: newUser.email },
+      isReturning: false,
+    });
   } catch (err) {
     console.error('Register error:', err);
     res.status(500).json({ error: 'Registration failed' });
@@ -102,6 +126,9 @@ router.get('/me', authenticateUser, async (req: AuthenticatedRequest, res: Respo
       .single();
 
     if (error || !user) {
+      // User was deleted from admin panel — clear the cookie so the JWT
+      // can't be replayed and the client treats the session as ended.
+      res.clearCookie('caai_token');
       res.status(404).json({ error: 'User not found' });
       return;
     }

@@ -13,16 +13,18 @@ interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   isAuthenticated: boolean;
-  register: (name: string, email: string) => Promise<void>;
+  register: (name: string, email: string) => Promise<{ isReturning: boolean }>;
   logout: () => void;
+  refresh: () => Promise<void>;
 }
 
 export const AuthContext = createContext<AuthContextType>({
   user: null,
   isLoading: true,
   isAuthenticated: false,
-  register: async () => {},
+  register: async () => ({ isReturning: false }),
   logout: () => {},
+  refresh: async () => {},
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -45,8 +47,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [checkAuth]);
 
   const register = async (name: string, email: string) => {
-    const data = await api.post<{ user: User }>('/auth/register', { name, email });
+    const data = await api.post<{ user: User; isReturning?: boolean }>('/auth/register', { name, email });
     setUser(data.user);
+    return { isReturning: !!data.isReturning };
   };
 
   const logout = async () => {
@@ -66,6 +69,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isAuthenticated: !!user,
         register,
         logout,
+        refresh: checkAuth,
       }}
     >
       {children}

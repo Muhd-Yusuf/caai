@@ -10,6 +10,7 @@ const Register: React.FC = () => {
   const [email, setEmail] = useState('');
   const [error, setError] = useState('');
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isReturning, setIsReturning] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
@@ -46,7 +47,8 @@ const Register: React.FC = () => {
     }
 
     try {
-      await register(name.trim(), email.trim());
+      const result = await register(name.trim(), email.trim());
+      setIsReturning(result.isReturning);
       setIsSubmitted(true);
     } catch (err: any) {
       setError(err.message || 'Registration failed. Please try again.');
@@ -89,9 +91,13 @@ const Register: React.FC = () => {
                   <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-6">
                     <Check className="w-8 h-8 text-green-600" />
                   </div>
-                  <h2 className="text-2xl font-bold text-gray-900 mb-4">Welcome to CAAI!</h2>
+                  <h2 className="text-2xl font-bold text-gray-900 mb-4">
+                    {isReturning ? 'Welcome back!' : 'Welcome to CAAI!'}
+                  </h2>
                   <p className="text-gray-600 mb-6">
-                    Thank you for joining our mission. You now have access to our AI tools and will receive updates about our initiatives.
+                    {isReturning
+                      ? 'You\'re signed in. You can now access the ACT on this device.'
+                      : 'Thank you for joining our mission. You now have access to our AI tools and will receive updates about our initiatives.'}
                   </p>
                   <Link
                     to="/detect"
@@ -150,7 +156,7 @@ const Register: React.FC = () => {
                       style={{borderColor: '#ed7c30'}}
                       disabled={isSubmitting}
                     >
-                      {isSubmitting ? 'Creating Account...' : 'Join CAAI'}
+                      {isSubmitting ? 'Registering...' : 'Registration'}
                     </button>
 
                     <p className="text-xs text-gray-500 text-center leading-relaxed">
