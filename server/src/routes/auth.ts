@@ -144,7 +144,10 @@ router.get('/me', authenticateUser, async (req: AuthenticatedRequest, res: Respo
     }
 
     if (!user.is_active) {
-      res.clearCookie('caai_token');
+      // Suspended: report 403 so the frontend treats the session as logged
+      // out, but DO NOT clear the cookie. If the admin reactivates the
+      // account later, the same cookie still works and the user can return
+      // to the tool without re-registering or signing in again.
       res.status(403).json({ error: 'Account suspended' });
       return;
     }
