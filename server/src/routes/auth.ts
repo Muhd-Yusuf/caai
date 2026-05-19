@@ -15,10 +15,13 @@ const router = Router();
 // records created via admin or different casing still resolve correctly.
 router.post('/register', async (req: Request, res: Response) => {
   try {
-    const { name, email } = req.body;
+    const { name, email, mode } = req.body;
+    const isLogin = mode === 'login';
 
-    if (!name || !email) {
-      res.status(400).json({ error: 'Name and email are required' });
+    // Name is only required when creating a new account; sign-in mode resolves
+    // the user by email alone.
+    if (!email || (!isLogin && !name)) {
+      res.status(400).json({ error: isLogin ? 'Email is required' : 'Name and email are required' });
       return;
     }
 
@@ -66,6 +69,13 @@ router.post('/register', async (req: Request, res: Response) => {
         user: { id: existing.id, name: existing.name, email: existing.email },
         isReturning: true,
       });
+      return;
+    }
+
+    // Sign-in mode but no matching account — direct the user to register
+    // rather than silently creating an account they didn't ask for.
+    if (isLogin) {
+      res.status(404).json({ error: 'No account found for this email. Please register first.' });
       return;
     }
 

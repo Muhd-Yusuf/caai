@@ -5,7 +5,8 @@ import { useAuth } from '../hooks/useAuth';
 
 const Register: React.FC = () => {
   const navigate = useNavigate();
-  const { isAuthenticated, register } = useAuth();
+  const { isAuthenticated, register, signIn } = useAuth();
+  const [mode, setMode] = useState<'register' | 'login'>('register');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [error, setError] = useState('');
@@ -29,12 +30,17 @@ const Register: React.FC = () => {
     return re.test(email);
   };
 
+  const switchMode = (next: 'register' | 'login') => {
+    setMode(next);
+    setError('');
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setIsSubmitting(true);
 
-    if (!name.trim()) {
+    if (mode === 'register' && !name.trim()) {
       setError('Please enter your name');
       setIsSubmitting(false);
       return;
@@ -47,11 +53,13 @@ const Register: React.FC = () => {
     }
 
     try {
-      const result = await register(name.trim(), email.trim());
+      const result = mode === 'login'
+        ? await signIn(email.trim())
+        : await register(name.trim(), email.trim());
       setIsReturning(result.isReturning);
       setIsSubmitted(true);
     } catch (err: any) {
-      setError(err.message || 'Registration failed. Please try again.');
+      setError(err.message || (mode === 'login' ? 'Sign in failed. Please try again.' : 'Registration failed. Please try again.'));
     } finally {
       setIsSubmitting(false);
     }
@@ -110,23 +118,27 @@ const Register: React.FC = () => {
               ) : (
                 <>
                   <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center">
-                    Create your account for free access to use the ACT
+                    {mode === 'login'
+                      ? 'Sign in to your account to use the ACT'
+                      : 'Create your account for free access to use the ACT'}
                   </h2>
                   <form onSubmit={handleSubmit} className="space-y-6">
-                    <div>
-                      <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
-                        Full Name
-                      </label>
-                      <input
-                        type="text"
-                        id="name"
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                        disabled={isSubmitting}
-                        className="w-full px-4 py-3 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed text-lg"
-                        placeholder="Enter your full name"
-                      />
-                    </div>
+                    {mode === 'register' && (
+                      <div>
+                        <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
+                          Full Name
+                        </label>
+                        <input
+                          type="text"
+                          id="name"
+                          value={name}
+                          onChange={(e) => setName(e.target.value)}
+                          disabled={isSubmitting}
+                          className="w-full px-4 py-3 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed text-lg"
+                          placeholder="Enter your full name"
+                        />
+                      </div>
+                    )}
                     <div>
                       <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
                         Email Address
@@ -156,8 +168,34 @@ const Register: React.FC = () => {
                       style={{borderColor: '#ed7c30'}}
                       disabled={isSubmitting}
                     >
-                      {isSubmitting ? 'Registering...' : 'Registration'}
+                      {isSubmitting
+                        ? (mode === 'login' ? 'Signing in...' : 'Registering...')
+                        : (mode === 'login' ? 'Sign in' : 'Register')}
                     </button>
+
+                    <p className="text-sm text-gray-600 text-center">
+                      {mode === 'register' ? (
+                        <>Already have an account?{' '}
+                          <button
+                            type="button"
+                            onClick={() => switchMode('login')}
+                            className="text-blue-700 hover:text-blue-800 underline font-medium"
+                          >
+                            Sign in
+                          </button>
+                        </>
+                      ) : (
+                        <>Don't have an account?{' '}
+                          <button
+                            type="button"
+                            onClick={() => switchMode('register')}
+                            className="text-blue-700 hover:text-blue-800 underline font-medium"
+                          >
+                            Register
+                          </button>
+                        </>
+                      )}
+                    </p>
 
                     <p className="text-xs text-gray-500 text-center leading-relaxed">
                       Disclaimer: Registration to use the ACT implies acceptance of the fact that the ACT, in it's current Beta version, can give variable results which may not always be accurate. The tool is therefore for guidance only and CAAI take no responsibility for how users employ results.
@@ -171,7 +209,7 @@ const Register: React.FC = () => {
               <h4 className="text-lg font-semibold text-white mb-3 text-center">Privacy & Security</h4>
               <p className="text-blue-100 text-sm text-center">
                 We take your privacy seriously. Your email will only be used for CAAI updates and tool access.
-                We never share your information with third parties and you can unsubscribe at any time.
+                We never share your information with third parties and you can unsubscribe at any time by contacting us.
               </p>
             </div>
           </div>

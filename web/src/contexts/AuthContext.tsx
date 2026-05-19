@@ -14,6 +14,7 @@ interface AuthContextType {
   isLoading: boolean;
   isAuthenticated: boolean;
   register: (name: string, email: string) => Promise<{ isReturning: boolean }>;
+  signIn: (email: string) => Promise<{ isReturning: boolean }>;
   logout: () => void;
   refresh: () => Promise<void>;
 }
@@ -23,6 +24,7 @@ export const AuthContext = createContext<AuthContextType>({
   isLoading: true,
   isAuthenticated: false,
   register: async () => ({ isReturning: false }),
+  signIn: async () => ({ isReturning: false }),
   logout: () => {},
   refresh: async () => {},
 });
@@ -52,6 +54,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { isReturning: !!data.isReturning };
   };
 
+  const signIn = async (email: string) => {
+    const data = await api.post<{ user: User; isReturning?: boolean }>('/auth/register', { email, mode: 'login' });
+    setUser(data.user);
+    return { isReturning: !!data.isReturning };
+  };
+
   const logout = async () => {
     try {
       await api.post('/auth/logout', {});
@@ -68,6 +76,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isLoading,
         isAuthenticated: !!user,
         register,
+        signIn,
         logout,
         refresh: checkAuth,
       }}
