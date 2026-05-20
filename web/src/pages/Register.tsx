@@ -5,10 +5,16 @@ import { useAuth } from '../hooks/useAuth';
 
 const Register: React.FC = () => {
   const navigate = useNavigate();
-  const { isAuthenticated, register, signIn } = useAuth();
-  const [mode, setMode] = useState<'register' | 'login'>('register');
+  const { isAuthenticated, register, signIn, refresh } = useAuth();
+  // If this device has registered before, default to Sign in mode so a user
+  // bounced here by an admin change (suspend, reactivate, etc.) sees the
+  // correct form instead of being told to "Create your account".
+  const lastEmail = (() => {
+    try { return localStorage.getItem('caai_last_email') || ''; } catch { return ''; }
+  })();
+  const [mode, setMode] = useState<'register' | 'login'>(lastEmail ? 'login' : 'register');
   const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(lastEmail);
   const [error, setError] = useState('');
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isReturning, setIsReturning] = useState(false);
@@ -17,6 +23,15 @@ const Register: React.FC = () => {
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
+
+  // Re-validate the session on mount. If the user was bounced here because
+  // their account was just suspended and an admin has now reactivated it,
+  // their existing cookie will quietly start working again — refresh() flips
+  // isAuthenticated to true and the redirect effect below sends them straight
+  // into the ACT without making them fill in the form at all.
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
 
   // Redirect if already authenticated
   useEffect(() => {

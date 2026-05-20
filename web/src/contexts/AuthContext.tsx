@@ -51,12 +51,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const register = async (name: string, email: string) => {
     const data = await api.post<{ user: User; isReturning?: boolean }>('/auth/register', { name, email });
     setUser(data.user);
+    // Remember this user has an account on this device so future visits
+    // (after admin changes log them out, or on a different day) default to
+    // the Sign in form rather than the Register form.
+    try { localStorage.setItem('caai_last_email', data.user.email); } catch { /* private mode */ }
     return { isReturning: !!data.isReturning };
   };
 
   const signIn = async (email: string) => {
     const data = await api.post<{ user: User; isReturning?: boolean }>('/auth/register', { email, mode: 'login' });
     setUser(data.user);
+    try { localStorage.setItem('caai_last_email', data.user.email); } catch { /* private mode */ }
     return { isReturning: !!data.isReturning };
   };
 
