@@ -2,10 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Check, AlertCircle, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
+import { useAdminAuth } from '../hooks/useAdminAuth';
 
 const Register: React.FC = () => {
   const navigate = useNavigate();
   const { isAuthenticated, register, signIn, refresh } = useAuth();
+  const { isAdmin } = useAdminAuth();
   // If this device has registered before, default to Sign in mode so a user
   // bounced here by an admin change (suspend, reactivate, etc.) sees the
   // correct form instead of being told to "Create your account".
@@ -39,6 +41,14 @@ const Register: React.FC = () => {
       navigate('/detect');
     }
   }, [isAuthenticated, navigate]);
+
+  // Admins should never see the user sign-in form — admin login overrides the
+  // regular user gate. If they hit this page (e.g. stale tab, bookmark, or the
+  // old gate redirect from before this fix shipped), send them to the admin
+  // dashboard so they can keep working without signing in a second time.
+  useEffect(() => {
+    if (isAdmin) navigate('/admin', { replace: true });
+  }, [isAdmin, navigate]);
 
   const validateEmail = (email: string) => {
     const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;

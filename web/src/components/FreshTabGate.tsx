@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { useAdminAuth } from '../hooks/useAdminAuth';
 
 const SESSION_KEY = 'caai_session_started';
 
@@ -20,17 +21,21 @@ export function SessionFlagger() {
 // /detect) bounce the user to the home page. Once they've been on any other
 // route within the SPA, the SessionFlagger sets the flag and subsequent visits
 // to /detect pass through. The flag lives in sessionStorage so it clears the
-// moment the tab is closed.
+// moment the tab is closed. Admins bypass this gate entirely — they always
+// navigate intentionally, so the "first-tab" warm-up doesn't apply.
 export default function FreshTabGate({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
+  const { isAdmin, isLoading: isAdminLoading } = useAdminAuth();
   const [allowed] = useState(() => !!sessionStorage.getItem(SESSION_KEY));
 
   useEffect(() => {
-    if (!allowed) {
+    if (isAdminLoading) return;
+    if (!allowed && !isAdmin) {
       navigate('/', { replace: true });
     }
-  }, [allowed, navigate]);
+  }, [allowed, isAdmin, isAdminLoading, navigate]);
 
-  if (!allowed) return null;
+  if (isAdminLoading) return null;
+  if (!allowed && !isAdmin) return null;
   return <>{children}</>;
 }
