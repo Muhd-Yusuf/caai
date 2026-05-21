@@ -46,9 +46,13 @@ async function request<T>(path: string, options: ApiOptions = {}): Promise<T> {
     const error = new Error(errorMessage) as Error & {
       status: number;
       resetInMinutes?: number;
+      maxSubmissions?: number;
+      windowHours?: number;
     };
     error.status = res.status;
     if (data.resetInMinutes) error.resetInMinutes = data.resetInMinutes;
+    if (data.maxSubmissions) error.maxSubmissions = data.maxSubmissions;
+    if (data.windowHours) error.windowHours = data.windowHours;
     throw error;
   }
 

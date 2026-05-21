@@ -12,6 +12,63 @@ Modal.setAppElement('#root');
 // Generate a new session ID each time the page loads
 const sessionId = crypto.randomUUID();
 
+type RateLimitState = { max: number | null; windowHours: number | null; resetAt: number };
+
+const formatCountdown = (resetAt: number): string => {
+  const remainingMs = Math.max(0, resetAt - Date.now());
+  const totalSecs = Math.ceil(remainingMs / 1000);
+  if (totalSecs <= 60) return 'less than a minute';
+  const totalMins = Math.ceil(totalSecs / 60);
+  if (totalMins < 60) return `${totalMins} minute${totalMins !== 1 ? 's' : ''}`;
+  const hrs = Math.floor(totalMins / 60);
+  const mins = totalMins % 60;
+  if (mins === 0) return `${hrs} hour${hrs !== 1 ? 's' : ''}`;
+  return `${hrs} hour${hrs !== 1 ? 's' : ''} ${mins} minute${mins !== 1 ? 's' : ''}`;
+};
+
+const formatWindow = (hours: number): string => {
+  if (hours < 1) return `${Math.round(hours * 60)}-minute`;
+  if (hours === 1) return '1-hour';
+  return `${hours}-hour`;
+};
+
+const RateLimitBanner: React.FC<{ rateLimit: RateLimitState }> = ({ rateLimit }) => {
+  const { max, windowHours, resetAt } = rateLimit;
+  return (
+    <div
+      role="alert"
+      aria-live="polite"
+      className="mb-4 p-4 sm:p-5 bg-amber-50 border border-amber-300 rounded-xl shadow-sm flex items-start gap-3 sm:gap-4"
+    >
+      <div className="flex-shrink-0 w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-amber-200 flex items-center justify-center">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5 sm:w-6 sm:h-6 text-amber-700">
+          <circle cx="12" cy="12" r="10" />
+          <polyline points="12 6 12 12 16 14" />
+        </svg>
+      </div>
+      <div className="flex-1 min-w-0">
+        <h3 className="font-semibold text-amber-900 text-base sm:text-lg leading-tight">
+          Usage limit reached
+        </h3>
+        <p className="text-sm text-amber-800 mt-1">
+          {max !== null ? (
+            <>
+              You've used all <span className="font-semibold">{max}</span> of your{' '}
+              <span className="font-semibold">{max}</span> submission{max !== 1 ? 's' : ''}
+              {windowHours !== null ? ` for this ${formatWindow(windowHours)} window` : ''}.
+            </>
+          ) : (
+            <>You've reached the maximum number of submissions for now.</>
+          )}
+        </p>
+        <p className="text-sm text-amber-900 mt-2">
+          Please try again in <span className="font-semibold">{formatCountdown(resetAt)}</span>.
+        </p>
+      </div>
+    </div>
+  );
+};
+
 const Detect: React.FC = () => {
   const [messages, setMessages] = useState<Array<{ content: { type: string, content: string, fileSize?: string }, isUser: boolean }>>([{
     content: {
@@ -24,7 +81,13 @@ const Detect: React.FC = () => {
   const [isDragging, setIsDragging] = useState(false);
   const [hasInteracted, setHasInteracted] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
-  const [rateLimitMessage, setRateLimitMessage] = useState<string | null>(null);
+  const [rateLimit, setRateLimit] = useState<{
+    max: number | null;
+    windowHours: number | null;
+    resetAt: number;
+  } | null>(null);
+  // Re-renders the countdown banner once a second so the "try again in X" label stays current
+  const [, setNowTick] = useState(0);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   // Track which video elements have already been autoplayed to prevent replay on re-render
   const playedVideos = useRef<WeakSet<HTMLVideoElement>>(new WeakSet());
@@ -113,6 +176,27 @@ const Detect: React.FC = () => {
       messageInput.disabled = disabled;
     }
   }, []);
+
+  // Tick the rate-limit banner every second while active. When the timer expires,
+  // clear the banner and re-enable the input row so the user can try again.
+  useEffect(() => {
+    if (!rateLimit) return;
+    const id = setInterval(() => {
+      if (Date.now() >= rateLimit.resetAt) {
+        setRateLimit(null);
+        toggleInputs(false);
+      } else {
+        setNowTick(t => t + 1);
+      }
+    }, 1000);
+    return () => clearInterval(id);
+  }, [rateLimit, toggleInputs]);
+
+  // When the banner first appears, lock the input row so users can't fire more
+  // requests that would all 429 again.
+  useEffect(() => {
+    if (rateLimit) toggleInputs(true);
+  }, [rateLimit, toggleInputs]);
 
   const formatFileSize = (bytes: number): string => {
     if (bytes < 1024) return `${bytes} B`;
@@ -203,7 +287,7 @@ const Detect: React.FC = () => {
     }
 
     try {
-      setRateLimitMessage(null);
+      setRateLimit(null);
       const data = await api.post<{ output: string }>('/act/chat', payload);
 
       if (!data || !data.output) {
@@ -217,11 +301,7 @@ const Detect: React.FC = () => {
     } catch (error: any) {
       console.error('Error sending message:', error);
       if (error.status === 429) {
-        setRateLimitMessage(error.message);
-        setMessages(prev => [...prev, {
-          content: { content: error.message, type: 'text' },
-          isUser: false,
-        }]);
+        handleRateLimitError(error);
       } else {
         setMessages(prev => [...prev, {
           content: { content: `Error: ${error.message || 'An unexpected error occurred'}`, type: 'text' },
@@ -246,7 +326,7 @@ const Detect: React.FC = () => {
     const payload = { sessionId, chatInput: userText, imageData };
 
     try {
-      setRateLimitMessage(null);
+      setRateLimit(null);
       const data = await api.post<{ output: string }>('/act/chat', payload);
 
       if (!data || !data.output) {
@@ -260,11 +340,7 @@ const Detect: React.FC = () => {
     } catch (error: any) {
       console.error('Error sending message:', error);
       if (error.status === 429) {
-        setRateLimitMessage(error.message);
-        setMessages(prev => [...prev, {
-          content: { content: error.message, type: 'text' },
-          isUser: false,
-        }]);
+        handleRateLimitError(error);
       } else {
         setMessages(prev => [...prev, {
           content: { content: `Error: ${error.message || 'An unexpected error occurred'}`, type: 'text' },
@@ -275,6 +351,15 @@ const Detect: React.FC = () => {
       setIsLoading(false);
       toggleInputs(false);
     }
+  };
+
+  const handleRateLimitError = (error: any) => {
+    const resetMins = typeof error.resetInMinutes === 'number' ? error.resetInMinutes : 60;
+    setRateLimit({
+      max: typeof error.maxSubmissions === 'number' ? error.maxSubmissions : null,
+      windowHours: typeof error.windowHours === 'number' ? error.windowHours : null,
+      resetAt: Date.now() + resetMins * 60_000,
+    });
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -763,11 +848,7 @@ const Detect: React.FC = () => {
             </p>
           </div>
 
-          {rateLimitMessage && (
-            <div className="mb-4 p-4 bg-yellow-100 border border-yellow-400 text-yellow-800 rounded-lg text-center">
-              {rateLimitMessage}
-            </div>
-          )}
+          {rateLimit && <RateLimitBanner rateLimit={rateLimit} />}
 
           <div 
             className={`bg-gray-50 rounded-xl shadow-2xl overflow-hidden relative ${isDragging ? 'ring-2 ring-blue-500' : ''}`}

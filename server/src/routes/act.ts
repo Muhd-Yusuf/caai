@@ -1,7 +1,7 @@
 import { Router, Response } from 'express';
 import { config } from '../config';
 import { optionalAuth } from '../middleware/auth';
-import { checkRateLimit, recordSubmission } from '../services/rateLimiter';
+import { checkRateLimit, getRateLimitConfig, recordSubmission } from '../services/rateLimiter';
 import { AuthenticatedRequest } from '../types';
 import { extractFrames } from '../services/videoProcessor';
 import { SYSTEM_PROMPT } from '../prompts/system-prompt';
@@ -122,9 +122,15 @@ router.post('/chat', optionalAuth, async (req: AuthenticatedRequest, res: Respon
         ? `${hours} hour${hours !== 1 ? 's' : ''}${mins > 0 ? ` ${mins} minute${mins !== 1 ? 's' : ''}` : ''}`
         : `${mins} minute${mins !== 1 ? 's' : ''}`;
 
+      const rateConfig = await getRateLimitConfig();
+      const max = rateConfig.max_submissions;
+      const windowHrs = rateConfig.window_hours;
+
       res.status(429).json({
-        error: `You've reached your usage limit. Please try again in ${timeStr}.`,
+        error: `You've used all ${max} of your ${max} submission${max !== 1 ? 's' : ''}. Please try again in ${timeStr}.`,
         resetInMinutes: rateCheck.resetInMinutes,
+        maxSubmissions: max,
+        windowHours: windowHrs,
       });
       return;
     }
