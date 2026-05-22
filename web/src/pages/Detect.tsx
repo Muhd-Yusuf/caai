@@ -38,7 +38,7 @@ const RateLimitBanner: React.FC<{ rateLimit: RateLimitState }> = ({ rateLimit })
     <div
       role="alert"
       aria-live="polite"
-      className="mb-4 p-4 sm:p-5 bg-amber-50 border border-amber-300 rounded-xl shadow-sm flex items-start gap-3 sm:gap-4"
+      className="mt-4 p-4 sm:p-5 bg-amber-50 border border-amber-300 rounded-xl shadow-sm flex items-start gap-3 sm:gap-4"
     >
       <div className="flex-shrink-0 w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-amber-200 flex items-center justify-center">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5 sm:w-6 sm:h-6 text-amber-700">
@@ -848,9 +848,7 @@ const Detect: React.FC = () => {
             </p>
           </div>
 
-          {rateLimit && <RateLimitBanner rateLimit={rateLimit} />}
-
-          <div 
+          <div
             className={`bg-gray-50 rounded-xl shadow-2xl overflow-hidden relative ${isDragging ? 'ring-2 ring-blue-500' : ''}`}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
@@ -993,6 +991,8 @@ const Detect: React.FC = () => {
               </div>
             </div>
           </div>
+
+          {rateLimit && <RateLimitBanner rateLimit={rateLimit} />}
         </div>
       </div>
 
