@@ -12,6 +12,11 @@ import adminRoutes from './routes/admin';
 
 const app = express();
 
+// Behind Nginx (Docker), so trust the first proxy hop. Without this, req.ip
+// reports the Nginx container's internal address instead of the real client,
+// which would break IP-based registration tracking and rate limiting.
+app.set('trust proxy', 1);
+
 // Middleware
 app.use(helmet());
 app.use(requestLogger);

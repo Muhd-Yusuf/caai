@@ -32,11 +32,17 @@ router.post('/register', async (req: Request, res: Response) => {
       return;
     }
 
+    // Real client IP. trust-proxy is set in index.ts so req.ip resolves to the
+    // first hop in X-Forwarded-For (the actual user) rather than the Nginx
+    // container address. Falls back to socket remote address if absent.
+    const clientIp = (req.ip || req.socket.remoteAddress || '').replace(/^::ffff:/, '') || null;
+    console.log(`[register] clientIp=${clientIp} email=${String(req.body?.email || '').toLowerCase().trim()}`);
+
     // Case-insensitive lookup so a record stored with different casing still
     // resolves (defensive against direct DB edits or admin tooling).
     const { data: existing, error: lookupError } = await supabase
       .from('users')
-      .select('id, name, email, is_active')
+      .select('id, name, email, is_active, registered_ip')
       .ilike('email', normalizedEmail)
       .maybeSingle();
 
@@ -48,6 +54,29 @@ router.post('/register', async (req: Request, res: Response) => {
       if (!existing.is_active) {
         res.status(403).json({ error: 'This account has been suspended. Please contact CAAI support.' });
         return;
+      }
+
+      // Backfill the registered IP if it wasn't recorded the first time
+      // (i.e. account predates the IP-capture migration). Don't overwrite an
+      // existing value — the first-seen IP is the meaningful one for spotting
+      // duplicate signups. Fire-and-forget with a catch so a backfill failure
+      // can never block a legitimate sign-in.
+      if (!existing.registered_ip && clientIp) {
+        try {
+          const { error: backfillError } = await supabase
+            .from('users')
+            .update({ registered_ip: clientIp })
+            .eq('id', existing.id);
+          if (backfillError) {
+            console.error('[register] IP backfill failed:', backfillError);
+          } else {
+            console.log(`[register] IP backfilled for existing user ${existing.email}: ${clientIp}`);
+          }
+        } catch (backfillErr) {
+          console.error('[register] IP backfill exception:', backfillErr);
+        }
+      } else {
+        console.log(`[register] backfill skipped: existing.registered_ip=${existing.registered_ip} clientIp=${clientIp}`);
       }
 
       // User exists and is active — sign them in
@@ -86,6 +115,7 @@ router.post('/register', async (req: Request, res: Response) => {
         name: String(name).trim(),
         email: normalizedEmail,
         created_by: 'self',
+        registered_ip: clientIp,
       })
       .select('id, name, email')
       .single();
