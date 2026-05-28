@@ -12,6 +12,7 @@ interface User {
   is_whitelisted: boolean;
   created_at: string;
   created_by: string;
+  registered_ip: string | null;
 }
 
 interface UsersResponse {
@@ -42,8 +43,8 @@ const AdminDashboard: React.FC = () => {
   // Delete confirmation
   const [deleteUserId, setDeleteUserId] = useState<string | null>(null);
 
-  const fetchUsers = useCallback(async () => {
-    setIsLoading(true);
+  const fetchUsers = useCallback(async (opts: { silent?: boolean } = {}) => {
+    if (!opts.silent) setIsLoading(true);
     setError('');
     try {
       const data = await api.get<UsersResponse>(
@@ -55,7 +56,7 @@ const AdminDashboard: React.FC = () => {
     } catch (err: any) {
       setError(err.message || 'Failed to load users');
     } finally {
-      setIsLoading(false);
+      if (!opts.silent) setIsLoading(false);
     }
   }, [page, search, filter]);
 
@@ -69,34 +70,48 @@ const AdminDashboard: React.FC = () => {
     fetchUsers();
   };
 
+  // Optimistic-update helpers: flip the row in local state first so the UI
+  // responds instantly, then send the request. On failure, roll back the row
+  // and surface the error. No full refetch needed — no "Loading users…" blink.
+
   const handleToggleActive = async (user: User) => {
+    const next = !user.is_active;
+    setUsers(prev => prev.map(u => u.id === user.id ? { ...u, is_active: next } : u));
     try {
-      await api.patch(`/admin/users/${user.id}`, { is_active: !user.is_active });
-      fetchUsers();
+      await api.patch(`/admin/users/${user.id}`, { is_active: next });
     } catch (err: any) {
+      setUsers(prev => prev.map(u => u.id === user.id ? { ...u, is_active: !next } : u));
       setError(err.message || 'Failed to update user');
     }
   };
 
   const handleToggleWhitelist = async (user: User) => {
+    const next = !user.is_whitelisted;
+    setUsers(prev => prev.map(u => u.id === user.id ? { ...u, is_whitelisted: next } : u));
     try {
       if (user.is_whitelisted) {
         await api.delete(`/admin/whitelist/${user.id}`);
       } else {
         await api.post(`/admin/whitelist/${user.id}`);
       }
-      fetchUsers();
     } catch (err: any) {
+      setUsers(prev => prev.map(u => u.id === user.id ? { ...u, is_whitelisted: !next } : u));
       setError(err.message || 'Failed to update whitelist');
     }
   };
 
   const handleDelete = async (userId: string) => {
+    const removed = users.find(u => u.id === userId);
+    setUsers(prev => prev.filter(u => u.id !== userId));
+    setTotal(t => Math.max(0, t - 1));
+    setDeleteUserId(null);
     try {
       await api.delete(`/admin/users/${userId}`);
-      setDeleteUserId(null);
-      fetchUsers();
     } catch (err: any) {
+      if (removed) {
+        setUsers(prev => [...prev, removed].sort((a, b) => a.name.localeCompare(b.name)));
+        setTotal(t => t + 1);
+      }
       setError(err.message || 'Failed to delete user');
     }
   };
@@ -111,7 +126,8 @@ const AdminDashboard: React.FC = () => {
       setShowCreateModal(false);
       setNewName('');
       setNewEmail('');
-      fetchUsers();
+      // Silent refetch so the new user appears without blanking the table.
+      fetchUsers({ silent: true });
     } catch (err: any) {
       setCreateError(err.message || 'Failed to create user');
     } finally {
@@ -221,19 +237,20 @@ const AdminDashboard: React.FC = () => {
                     <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Status</th>
                     <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Whitelisted</th>
                     <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Registered</th>
+                    <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">IP</th>
                     <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {isLoading ? (
                     <tr>
-                      <td colSpan={6} className="py-12 text-center text-gray-500">
+                      <td colSpan={7} className="py-12 text-center text-gray-500">
                         Loading users...
                       </td>
                     </tr>
                   ) : users.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="py-12 text-center text-gray-500">
+                      <td colSpan={7} className="py-12 text-center text-gray-500">
                         No users found
                       </td>
                     </tr>
@@ -262,6 +279,9 @@ const AdminDashboard: React.FC = () => {
                         </td>
                         <td className="py-3 px-4 text-sm text-gray-500">
                           {new Date(user.created_at).toLocaleDateString()}
+                        </td>
+                        <td className="py-3 px-4 text-xs text-gray-500 font-mono">
+                          {user.registered_ip || '—'}
                         </td>
                         <td className="py-3 px-4">
                           <div className="flex gap-2">
