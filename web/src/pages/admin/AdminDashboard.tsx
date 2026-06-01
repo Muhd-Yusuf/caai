@@ -234,10 +234,10 @@ const AdminDashboard: React.FC = () => {
                   <tr className="bg-gray-50 border-b">
                     <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Name</th>
                     <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Email</th>
+                    <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">IP</th>
                     <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Status</th>
                     <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Whitelisted</th>
                     <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Registered</th>
-                    <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">IP</th>
                     <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Actions</th>
                   </tr>
                 </thead>
@@ -259,6 +259,9 @@ const AdminDashboard: React.FC = () => {
                       <tr key={user.id} className="border-b hover:bg-gray-50">
                         <td className="py-3 px-4 text-sm text-gray-900">{user.name}</td>
                         <td className="py-3 px-4 text-sm text-gray-600">{user.email}</td>
+                        <td className="py-3 px-4 text-xs text-gray-500 font-mono">
+                          {user.registered_ip || '—'}
+                        </td>
                         <td className="py-3 px-4">
                           <span
                             className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
@@ -279,9 +282,6 @@ const AdminDashboard: React.FC = () => {
                         </td>
                         <td className="py-3 px-4 text-sm text-gray-500">
                           {new Date(user.created_at).toLocaleDateString()}
-                        </td>
-                        <td className="py-3 px-4 text-xs text-gray-500 font-mono">
-                          {user.registered_ip || '—'}
                         </td>
                         <td className="py-3 px-4">
                           <div className="flex gap-2">
