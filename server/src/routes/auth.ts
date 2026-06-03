@@ -5,6 +5,7 @@ import { supabase, supabaseAuth } from '../services/supabase';
 import { authenticateUser } from '../middleware/auth';
 import { authenticateAdmin } from '../middleware/adminAuth';
 import { AuthenticatedRequest, AdminRequest } from '../types';
+import { getClientIp } from '../utils/clientIp';
 
 const router = Router();
 
@@ -32,10 +33,9 @@ router.post('/register', async (req: Request, res: Response) => {
       return;
     }
 
-    // Real client IP. trust-proxy is set in index.ts so req.ip resolves to the
-    // first hop in X-Forwarded-For (the actual user) rather than the Nginx
-    // container address. Falls back to socket remote address if absent.
-    const clientIp = (req.ip || req.socket.remoteAddress || '').replace(/^::ffff:/, '') || null;
+    // Real client IP. See getClientIp — Cloudflare fronts Render, so we read
+    // CF-Connecting-IP and only fall back to req.ip in environments without it.
+    const clientIp = getClientIp(req);
     console.log(`[register] clientIp=${clientIp} email=${String(req.body?.email || '').toLowerCase().trim()}`);
 
     // Case-insensitive lookup so a record stored with different casing still

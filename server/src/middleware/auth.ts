@@ -2,6 +2,7 @@ import { Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { config } from '../config';
 import { AuthenticatedRequest, JwtPayload } from '../types';
+import { getClientIp } from '../utils/clientIp';
 
 export function authenticateUser(
   req: AuthenticatedRequest,
@@ -44,7 +45,7 @@ export function optionalAuth(
   }
 
   if (!req.user) {
-    const ip = req.ip || req.socket.remoteAddress || 'unknown';
+    const ip = getClientIp(req) || 'unknown';
     req.user = { userId: `guest_${ip}`, email: 'guest' };
   }
 
