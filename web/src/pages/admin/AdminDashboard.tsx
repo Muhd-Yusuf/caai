@@ -22,22 +22,6 @@ interface UsersResponse {
   totalPages: number;
 }
 
-// Strip the host portion of the address so two signups from the same household
-// collapse to an identical value, making duplicate-IP rows easy to spot at a
-// glance even when the full IPs differ. IPv4 keeps the first three octets, IPv6
-// keeps the first four hextets (/64 prefix), which is the standard subscriber
-// network boundary.
-function ipNetwork(ip: string | null): string {
-  if (!ip) return '—';
-  if (ip.includes(':')) {
-    const groups = ip.split(':').slice(0, 4).filter(Boolean);
-    return groups.length ? `${groups.join(':')}::/64` : '—';
-  }
-  const parts = ip.split('.');
-  if (parts.length === 4) return `${parts[0]}.${parts[1]}.${parts[2]}.x`;
-  return '—';
-}
-
 const AdminDashboard: React.FC = () => {
   const { logout } = useAdminAuth();
   const [users, setUsers] = useState<User[]>([]);
@@ -251,7 +235,6 @@ const AdminDashboard: React.FC = () => {
                     <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Name</th>
                     <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Email</th>
                     <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">IP</th>
-                    <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Network</th>
                     <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Status</th>
                     <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Whitelisted</th>
                     <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Registered</th>
@@ -261,13 +244,13 @@ const AdminDashboard: React.FC = () => {
                 <tbody>
                   {isLoading ? (
                     <tr>
-                      <td colSpan={8} className="py-12 text-center text-gray-500">
+                      <td colSpan={7} className="py-12 text-center text-gray-500">
                         Loading users...
                       </td>
                     </tr>
                   ) : users.length === 0 ? (
                     <tr>
-                      <td colSpan={8} className="py-12 text-center text-gray-500">
+                      <td colSpan={7} className="py-12 text-center text-gray-500">
                         No users found
                       </td>
                     </tr>
@@ -278,9 +261,6 @@ const AdminDashboard: React.FC = () => {
                         <td className="py-3 px-4 text-sm text-gray-600">{user.email}</td>
                         <td className="py-3 px-4 text-xs text-gray-500 font-mono">
                           {user.registered_ip || '—'}
-                        </td>
-                        <td className="py-3 px-4 text-xs text-gray-500 font-mono">
-                          {ipNetwork(user.registered_ip)}
                         </td>
                         <td className="py-3 px-4">
                           <span
