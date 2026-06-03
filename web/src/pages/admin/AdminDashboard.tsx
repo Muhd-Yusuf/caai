@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, UserPlus, Settings, LogOut, ChevronLeft, ChevronRight, AlertCircle, X } from 'lucide-react';
+import { Search, UserPlus, Settings, LogOut, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, AlertCircle, X } from 'lucide-react';
 import { useAdminAuth } from '../../hooks/useAdminAuth';
 import { api } from '../../services/api';
 
@@ -42,6 +42,21 @@ const AdminDashboard: React.FC = () => {
 
   // Delete confirmation
   const [deleteUserId, setDeleteUserId] = useState<string | null>(null);
+
+  // Sort state. Sort is applied client-side to the current page so the most
+  // common admin task (clicking IP to cluster duplicate signups) is one click.
+  type SortKey = 'name' | 'email' | 'registered_ip' | 'is_active' | 'is_whitelisted' | 'created_at';
+  const [sortKey, setSortKey] = useState<SortKey | null>(null);
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+
+  const toggleSort = (key: SortKey) => {
+    if (sortKey === key) {
+      setSortDir(d => (d === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortKey(key);
+      setSortDir('asc');
+    }
+  };
 
   const fetchUsers = useCallback(async (opts: { silent?: boolean } = {}) => {
     if (!opts.silent) setIsLoading(true);
@@ -139,6 +154,34 @@ const AdminDashboard: React.FC = () => {
     await logout();
   };
 
+  const sortedUsers = useMemo(() => {
+    if (!sortKey) return users;
+    const dir = sortDir === 'asc' ? 1 : -1;
+    return [...users].sort((a, b) => {
+      const av = a[sortKey];
+      const bv = b[sortKey];
+      if (av == null && bv == null) return 0;
+      if (av == null) return 1;
+      if (bv == null) return -1;
+      if (av < bv) return -1 * dir;
+      if (av > bv) return 1 * dir;
+      return 0;
+    });
+  }, [users, sortKey, sortDir]);
+
+  const SortableHeader = ({ k, label }: { k: SortKey; label: string }) => (
+    <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">
+      <button
+        type="button"
+        onClick={() => toggleSort(k)}
+        className="inline-flex items-center gap-1 hover:text-gray-900"
+      >
+        {label}
+        {sortKey === k && (sortDir === 'asc' ? <ChevronUp size={14} /> : <ChevronDown size={14} />)}
+      </button>
+    </th>
+  );
+
   return (
     <main
       className="min-h-screen"
@@ -232,12 +275,12 @@ const AdminDashboard: React.FC = () => {
               <table className="w-full">
                 <thead>
                   <tr className="bg-gray-50 border-b">
-                    <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Name</th>
-                    <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Email</th>
-                    <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">IP</th>
-                    <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Status</th>
-                    <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Whitelisted</th>
-                    <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Registered</th>
+                    <SortableHeader k="name" label="Name" />
+                    <SortableHeader k="email" label="Email" />
+                    <SortableHeader k="registered_ip" label="IP" />
+                    <SortableHeader k="is_active" label="Status" />
+                    <SortableHeader k="is_whitelisted" label="Whitelisted" />
+                    <SortableHeader k="created_at" label="Registered" />
                     <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Actions</th>
                   </tr>
                 </thead>
@@ -255,7 +298,7 @@ const AdminDashboard: React.FC = () => {
                       </td>
                     </tr>
                   ) : (
-                    users.map((user) => (
+                    sortedUsers.map((user) => (
                       <tr key={user.id} className="border-b hover:bg-gray-50">
                         <td className="py-3 px-4 text-sm text-gray-900">{user.name}</td>
                         <td className="py-3 px-4 text-sm text-gray-600">{user.email}</td>
