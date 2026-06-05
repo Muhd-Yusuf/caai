@@ -22,8 +22,10 @@ interface UsersResponse {
   totalPages: number;
 }
 
-// Must match the backend default page size (server/src/routes/admin.ts).
-const PAGE_SIZE = 20;
+// Page-size choices for the "rows per page" selector. The backend honours the
+// `limit` query param, defaulting to 20 (server/src/routes/admin.ts).
+const PAGE_SIZE_OPTIONS = [5, 10, 15, 20];
+const DEFAULT_PAGE_SIZE = 20;
 
 // Build a compact page list with ellipses, e.g. [1, '…', 4, 5, 6, '…', 12].
 // Always shows first/last and a window around the current page.
@@ -56,6 +58,7 @@ const AdminDashboard: React.FC = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('all');
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -89,7 +92,7 @@ const AdminDashboard: React.FC = () => {
     setError('');
     try {
       const data = await api.get<UsersResponse>(
-        `/admin/users?page=${page}&limit=${PAGE_SIZE}&search=${encodeURIComponent(search)}&filter=${filter}`
+        `/admin/users?page=${page}&limit=${pageSize}&search=${encodeURIComponent(search)}&filter=${filter}`
       );
       setUsers(data.users);
       setTotal(data.total);
@@ -99,7 +102,7 @@ const AdminDashboard: React.FC = () => {
     } finally {
       if (!opts.silent) setIsLoading(false);
     }
-  }, [page, search, filter]);
+  }, [page, pageSize, search, filter]);
 
   useEffect(() => {
     fetchUsers();
@@ -392,17 +395,36 @@ const AdminDashboard: React.FC = () => {
             {/* Pagination */}
             {!isLoading && total > 0 && (
               <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 py-3 bg-gray-50 border-t">
-                <p className="text-sm text-gray-600">
-                  Showing{' '}
-                  <span className="font-medium text-gray-900">
-                    {(page - 1) * PAGE_SIZE + 1}
-                  </span>
-                  –
-                  <span className="font-medium text-gray-900">
-                    {Math.min(page * PAGE_SIZE, total)}
-                  </span>{' '}
-                  of <span className="font-medium text-gray-900">{total}</span> users
-                </p>
+                <div className="flex items-center gap-4">
+                  <p className="text-sm text-gray-600">
+                    Showing{' '}
+                    <span className="font-medium text-gray-900">
+                      {(page - 1) * pageSize + 1}
+                    </span>
+                    –
+                    <span className="font-medium text-gray-900">
+                      {Math.min(page * pageSize, total)}
+                    </span>{' '}
+                    of <span className="font-medium text-gray-900">{total}</span> users
+                  </p>
+                  <label className="flex items-center gap-2 text-sm text-gray-600">
+                    Rows
+                    <select
+                      value={pageSize}
+                      onChange={(e) => {
+                        setPageSize(Number(e.target.value));
+                        setPage(1);
+                      }}
+                      className="rounded border border-gray-300 bg-white px-2 py-1 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      {PAGE_SIZE_OPTIONS.map((n) => (
+                        <option key={n} value={n}>
+                          {n}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
 
                 {totalPages > 1 && (
                   <div className="flex items-center gap-1">
