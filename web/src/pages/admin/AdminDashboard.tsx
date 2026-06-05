@@ -22,6 +22,32 @@ interface UsersResponse {
   totalPages: number;
 }
 
+// Must match the backend default page size (server/src/routes/admin.ts).
+const PAGE_SIZE = 20;
+
+// Build a compact page list with ellipses, e.g. [1, '…', 4, 5, 6, '…', 12].
+// Always shows first/last and a window around the current page.
+function getPageItems(current: number, totalPages: number): (number | '…')[] {
+  if (totalPages <= 7) {
+    return Array.from({ length: totalPages }, (_, i) => i + 1);
+  }
+  const delta = 1;
+  const window: number[] = [];
+  for (
+    let i = Math.max(2, current - delta);
+    i <= Math.min(totalPages - 1, current + delta);
+    i++
+  ) {
+    window.push(i);
+  }
+  const items: (number | '…')[] = [1];
+  if (window[0] > 2) items.push('…');
+  items.push(...window);
+  if (window[window.length - 1] < totalPages - 1) items.push('…');
+  items.push(totalPages);
+  return items;
+}
+
 const AdminDashboard: React.FC = () => {
   const { logout } = useAdminAuth();
   const [users, setUsers] = useState<User[]>([]);
@@ -63,7 +89,7 @@ const AdminDashboard: React.FC = () => {
     setError('');
     try {
       const data = await api.get<UsersResponse>(
-        `/admin/users?page=${page}&search=${encodeURIComponent(search)}&filter=${filter}`
+        `/admin/users?page=${page}&limit=${PAGE_SIZE}&search=${encodeURIComponent(search)}&filter=${filter}`
       );
       setUsers(data.users);
       setTotal(data.total);
@@ -364,29 +390,64 @@ const AdminDashboard: React.FC = () => {
             </div>
 
             {/* Pagination */}
-            {totalPages > 1 && (
-              <div className="flex items-center justify-between px-4 py-3 bg-gray-50 border-t">
+            {!isLoading && total > 0 && (
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 py-3 bg-gray-50 border-t">
                 <p className="text-sm text-gray-600">
-                  Page {page} of {totalPages}
+                  Showing{' '}
+                  <span className="font-medium text-gray-900">
+                    {(page - 1) * PAGE_SIZE + 1}
+                  </span>
+                  –
+                  <span className="font-medium text-gray-900">
+                    {Math.min(page * PAGE_SIZE, total)}
+                  </span>{' '}
+                  of <span className="font-medium text-gray-900">{total}</span> users
                 </p>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setPage((p) => Math.max(1, p - 1))}
-                    disabled={page === 1}
-                    className="flex items-center gap-1 px-3 py-1 rounded bg-gray-200 text-gray-700 hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  >
-                    <ChevronLeft size={16} />
-                    Previous
-                  </button>
-                  <button
-                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                    disabled={page === totalPages}
-                    className="flex items-center gap-1 px-3 py-1 rounded bg-gray-200 text-gray-700 hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  >
-                    Next
-                    <ChevronRight size={16} />
-                  </button>
-                </div>
+
+                {totalPages > 1 && (
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => setPage((p) => Math.max(1, p - 1))}
+                      disabled={page === 1}
+                      aria-label="Previous page"
+                      className="flex items-center gap-1 px-3 py-1 rounded bg-gray-200 text-gray-700 hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      <ChevronLeft size={16} />
+                      <span className="hidden sm:inline">Previous</span>
+                    </button>
+
+                    {getPageItems(page, totalPages).map((item, i) =>
+                      item === '…' ? (
+                        <span key={`ellipsis-${i}`} className="px-2 text-gray-400 select-none">
+                          …
+                        </span>
+                      ) : (
+                        <button
+                          key={item}
+                          onClick={() => setPage(item)}
+                          aria-current={item === page ? 'page' : undefined}
+                          className={`min-w-[2rem] px-2 py-1 rounded text-sm transition-colors ${
+                            item === page
+                              ? 'bg-blue-600 text-white font-medium'
+                              : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                          }`}
+                        >
+                          {item}
+                        </button>
+                      )
+                    )}
+
+                    <button
+                      onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                      disabled={page === totalPages}
+                      aria-label="Next page"
+                      className="flex items-center gap-1 px-3 py-1 rounded bg-gray-200 text-gray-700 hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      <span className="hidden sm:inline">Next</span>
+                      <ChevronRight size={16} />
+                    </button>
+                  </div>
+                )}
               </div>
             )}
           </div>
