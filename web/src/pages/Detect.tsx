@@ -79,6 +79,10 @@ const Detect: React.FC = () => {
   }]);
   const [isLoading, setIsLoading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  // "Translate last" panel: null = closed. Non-null (incl. empty) = open.
+  const [translation, setTranslation] = useState<string | null>(null);
+  const [isTranslating, setIsTranslating] = useState(false);
+  const [translateError, setTranslateError] = useState('');
   const [hasInteracted, setHasInteracted] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [rateLimit, setRateLimit] = useState<{
@@ -351,6 +355,44 @@ const Detect: React.FC = () => {
       setIsLoading(false);
       toggleInputs(false);
     }
+  };
+
+  // "Translate last" toggle: opens a panel with the English translation of the
+  // user's most recent text entry; clicking again closes it. Translation runs
+  // through a dedicated endpoint, so it never counts as a submission.
+  const handleTranslateLast = async () => {
+    // Already open (showing a result, an error, or loading) → close it.
+    if (translation !== null || translateError || isTranslating) {
+      setTranslation(null);
+      setTranslateError('');
+      return;
+    }
+
+    const lastUserText = [...messages]
+      .reverse()
+      .find((m) => m.isUser && m.content.type === 'text' && m.content.content.trim())
+      ?.content.content;
+
+    if (!lastUserText) {
+      setTranslateError('No text entry to translate yet.');
+      return;
+    }
+
+    setIsTranslating(true);
+    setTranslateError('');
+    try {
+      const data = await api.post<{ translation: string }>('/act/translate', { text: lastUserText });
+      setTranslation(data.translation || '');
+    } catch (err: any) {
+      setTranslateError(err?.message || 'Translation failed. Please try again.');
+    } finally {
+      setIsTranslating(false);
+    }
+  };
+
+  const closeTranslation = () => {
+    setTranslation(null);
+    setTranslateError('');
   };
 
   const handleRateLimitError = (error: any) => {
@@ -967,6 +1009,7 @@ const Detect: React.FC = () => {
                       }]);
                       setHasInteracted(false);
                       lastImageRef.current = null;
+                      closeTranslation();
                     }}
                     className="bg-gray-200 hover:bg-gray-300 text-gray-600 text-xs sm:text-sm px-3 py-1.5 rounded-lg transition-colors"
                   >
@@ -982,12 +1025,51 @@ const Detect: React.FC = () => {
                         const trimmed = prev.slice(0, -2);
                         return trimmed.length >= 1 ? trimmed : prev.slice(0, 1);
                       });
+                      closeTranslation();
                     }}
                     className="bg-gray-200 hover:bg-gray-300 text-gray-600 text-xs sm:text-sm px-3 py-1.5 rounded-lg transition-colors"
                   >
                     Clear last
                   </button>
+                  <button
+                    type="button"
+                    onClick={handleTranslateLast}
+                    disabled={isTranslating}
+                    className="bg-gray-200 hover:bg-gray-300 text-gray-600 text-xs sm:text-sm px-3 py-1.5 rounded-lg transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                  >
+                    {isTranslating
+                      ? 'Translating…'
+                      : (translation !== null || translateError)
+                        ? 'Hide translation'
+                        : 'Translate last'}
+                  </button>
                 </div>
+
+                {/* Translation panel — English translation of the last entry */}
+                {(isTranslating || translation !== null || translateError) && (
+                  <div className="mt-2 rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                        English translation
+                      </span>
+                      <button
+                        type="button"
+                        onClick={closeTranslation}
+                        aria-label="Close translation"
+                        className="text-gray-400 hover:text-gray-600"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                    {isTranslating ? (
+                      <p className="text-gray-500">Translating your last entry…</p>
+                    ) : translateError ? (
+                      <p className="text-red-600">{translateError}</p>
+                    ) : (
+                      <p className="text-gray-800 whitespace-pre-wrap break-words">{translation}</p>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           </div>

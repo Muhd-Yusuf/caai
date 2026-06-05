@@ -82,6 +82,45 @@ async function sendToOpenAI(userContent: OpenAIContent[], attempt = 1): Promise<
 }
 
 /**
+ * Translates arbitrary text to English using OpenAI. Deliberately kept apart
+ * from the IHRA analysis pipeline: this only translates, it does not classify,
+ * and it does not consume a submission. Used by the "Translate last" button so
+ * reviewers can read what foreign-language input actually said.
+ */
+async function translateToEnglish(text: string): Promise<string> {
+  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${config.openaiApiKey}`,
+    },
+    body: JSON.stringify({
+      model: 'gpt-4o',
+      messages: [
+        {
+          role: 'system',
+          content:
+            'You are a translation engine. Translate the user\'s message into English as accurately as possible, preserving meaning and tone. If the text is already in English, return it unchanged. Respond with ONLY the English translation — no notes, no explanations, no surrounding quotation marks.',
+        },
+        { role: 'user', content: text },
+      ],
+      max_tokens: 2048,
+      temperature: 0,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorBody = await response.text();
+    throw new Error(`OpenAI translate error ${response.status}: ${errorBody}`);
+  }
+
+  const data = await response.json() as {
+    choices: Array<{ message: { content: string } }>;
+  };
+  return data.choices[0]?.message?.content?.trim() || '';
+}
+
+/**
  * Sends a payload to the n8n webhook and returns the parsed response.
  */
 async function sendToN8n(payload: Record<string, unknown>): Promise<{ output?: string }> {
@@ -213,6 +252,26 @@ router.post('/chat', optionalAuth, async (req: AuthenticatedRequest, res: Respon
     } else {
       res.status(502).json({ error: 'AI processing failed. Please try again.' });
     }
+  }
+});
+
+// POST /api/act/translate — Translate the user's last entry to English.
+// A convenience for reviewers reading foreign-language input. Does NOT run the
+// IHRA analysis and does NOT count against the submission rate limit.
+router.post('/translate', optionalAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { text } = req.body;
+
+    if (!text || typeof text !== 'string' || !text.trim()) {
+      res.status(400).json({ error: 'Text to translate is required' });
+      return;
+    }
+
+    const translation = await translateToEnglish(text.trim());
+    res.json({ translation });
+  } catch (err: any) {
+    console.error('Translate error:', err);
+    res.status(502).json({ error: 'Translation failed. Please try again.' });
   }
 });
 
