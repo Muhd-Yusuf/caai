@@ -83,6 +83,9 @@ const Detect: React.FC = () => {
   const [translation, setTranslation] = useState<string | null>(null);
   const [isTranslating, setIsTranslating] = useState(false);
   const [translateError, setTranslateError] = useState('');
+  // Set when the last entry is already English, so we show a notice instead of
+  // echoing the same text back as a "translation".
+  const [englishNotice, setEnglishNotice] = useState(false);
   const [hasInteracted, setHasInteracted] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [rateLimit, setRateLimit] = useState<{
@@ -361,10 +364,9 @@ const Detect: React.FC = () => {
   // user's most recent text entry; clicking again closes it. Translation runs
   // through a dedicated endpoint, so it never counts as a submission.
   const handleTranslateLast = async () => {
-    // Already open (showing a result, an error, or loading) → close it.
-    if (translation !== null || translateError || isTranslating) {
-      setTranslation(null);
-      setTranslateError('');
+    // Already open (showing a result, a notice, an error, or loading) → close it.
+    if (translation !== null || translateError || englishNotice || isTranslating) {
+      closeTranslation();
       return;
     }
 
@@ -381,8 +383,15 @@ const Detect: React.FC = () => {
     setIsTranslating(true);
     setTranslateError('');
     try {
-      const data = await api.post<{ translation: string }>('/act/translate', { text: lastUserText });
-      setTranslation(data.translation || '');
+      const data = await api.post<{ translation?: string; isEnglish?: boolean }>(
+        '/act/translate',
+        { text: lastUserText }
+      );
+      if (data.isEnglish) {
+        setEnglishNotice(true);
+      } else {
+        setTranslation(data.translation || '');
+      }
     } catch (err: any) {
       setTranslateError(err?.message || 'Translation failed. Please try again.');
     } finally {
@@ -393,6 +402,7 @@ const Detect: React.FC = () => {
   const closeTranslation = () => {
     setTranslation(null);
     setTranslateError('');
+    setEnglishNotice(false);
   };
 
   const handleRateLimitError = (error: any) => {
@@ -1039,34 +1049,30 @@ const Detect: React.FC = () => {
                   >
                     {isTranslating
                       ? 'Translating…'
-                      : (translation !== null || translateError)
+                      : (translation !== null || translateError || englishNotice)
                         ? 'Hide translation'
                         : 'Translate last'}
                   </button>
                 </div>
 
-                {/* Translation panel — English translation of the last entry */}
-                {(isTranslating || translation !== null || translateError) && (
+                {/* Translation panel — English translation of the last entry.
+                    Capped at ~6 lines with its own scroll so it never pushes the
+                    ACT output up the screen. */}
+                {(isTranslating || translation !== null || translateError || englishNotice) && (
                   <div className="mt-2 rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm">
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                        English translation
-                      </span>
-                      <button
-                        type="button"
-                        onClick={closeTranslation}
-                        aria-label="Close translation"
-                        className="text-gray-400 hover:text-gray-600"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    </div>
+                    <span className="block text-xs font-semibold uppercase tracking-wide text-gray-500 mb-1">
+                      English translation
+                    </span>
                     {isTranslating ? (
                       <p className="text-gray-500">Translating your last entry…</p>
                     ) : translateError ? (
                       <p className="text-red-600">{translateError}</p>
+                    ) : englishNotice ? (
+                      <p className="text-gray-500 italic">English content identified.</p>
                     ) : (
-                      <p className="text-gray-800 whitespace-pre-wrap break-words">{translation}</p>
+                      <p className="max-h-[7.5rem] overflow-y-auto pr-2 text-gray-800 whitespace-pre-wrap break-words leading-5">
+                        {translation}
+                      </p>
                     )}
                   </div>
                 )}
