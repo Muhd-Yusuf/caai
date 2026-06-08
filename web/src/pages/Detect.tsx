@@ -6,6 +6,14 @@ import cameraIcon from '../assets/camera-icon.svg';
 import { compressImage } from '../utils/imageUtils';
 import { api } from '../services/api';
 import StructuredOutput from '../components/StructuredOutput';
+import {
+  detectScript,
+  fontForScript,
+  reshapeArabic,
+  toVisualOrder,
+  ensureUnicodeFonts,
+  registerUnicodeFonts,
+} from '../utils/pdfText';
 
 Modal.setAppElement('#root');
 
@@ -487,6 +495,17 @@ const Detect: React.FC = () => {
 
   const generatePDF = async () => {
     const pdf = new jsPDF('p', 'mm', 'a4');
+
+    // Embed Unicode fonts so non-Latin input (Arabic and others) renders as
+    // real text instead of missing-glyph boxes. Best-effort: if the fonts fail
+    // to load the PDF still generates (Latin content is unaffected).
+    try {
+      await ensureUnicodeFonts();
+      registerUnicodeFonts(pdf);
+    } catch (err) {
+      console.warn('Unicode PDF fonts unavailable, falling back to default:', err);
+    }
+
     const pageWidth = pdf.internal.pageSize.getWidth();
     const pageHeight = pdf.internal.pageSize.getHeight();
     const margin = 15;
@@ -709,8 +728,21 @@ const Detect: React.FC = () => {
           '\n\n$1'
         ) : messageText;
 
+        // Pick a font that can render this message's script. Latin text stays
+        // on helvetica so existing English/French output is unchanged. Arabic
+        // uses an embedded Arabic font with letter-joining + right-to-left
+        // ordering; other non-Latin scripts use NotoSans.
+        const script = detectScript(message.content.content);
+        const contentFont = fontForScript(script);
+        const isRTL = script === 'arabic';
+        pdf.setFont(contentFont, 'normal');
+
+        // For Arabic, join letters into their presentation forms before we
+        // measure and wrap, so widths and line breaks match what we draw.
+        const layoutText = isRTL ? reshapeArabic(spacedText) : spacedText;
+
         // Strip bold markers for wrapping calculation only
-        const plainText = spacedText.replace(/\*\*(.+?)\*\*/g, '$1');
+        const plainText = layoutText.replace(/\*\*(.+?)\*\*/g, '$1');
         const wrappedPlain = wrapText(plainText, messageMaxWidth - 15, 10);
         const lineHeight = 5;
         // Extra height for verdict badge if IHRA
@@ -718,7 +750,7 @@ const Detect: React.FC = () => {
         const bubbleHeight = wrappedPlain.length * lineHeight + 20 + verdictHeight;
 
         // Also wrap the text WITH bold markers to render bold segments
-        const wrappedBold = wrapText(spacedText, messageMaxWidth - 15, 10);
+        const wrappedBold = wrapText(layoutText, messageMaxWidth - 15, 10);
 
         // Calculate bubble width based on content
         let bubbleWidth = 0;
@@ -812,19 +844,27 @@ const Detect: React.FC = () => {
               textY += 2;
               continue;
             }
-            const segments = line.split(/(\*\*[^*]+\*\*)/g);
-            let xPos = bubbleX + 10;
-            for (const segment of segments) {
-              if (segment.startsWith('**') && segment.endsWith('**')) {
-                const boldText = segment.slice(2, -2);
-                pdf.setFont('helvetica', 'bold');
-                pdf.text(boldText, xPos, textY);
-                xPos += pdf.getTextWidth(boldText);
-                pdf.setFont('helvetica', 'normal');
-              } else if (segment) {
-                pdf.setFont('helvetica', 'normal');
-                pdf.text(segment, xPos, textY);
-                xPos += pdf.getTextWidth(segment);
+            if (isRTL) {
+              // Reorder the (already reshaped) line to visual order and draw it
+              // right-aligned against the inside edge of the bubble.
+              const visual = toVisualOrder(line.replace(/\*\*/g, ''));
+              pdf.setFont(contentFont, 'normal');
+              pdf.text(visual, bubbleX + bubbleWidth - 10, textY, { align: 'right' });
+            } else {
+              const segments = line.split(/(\*\*[^*]+\*\*)/g);
+              let xPos = bubbleX + 10;
+              for (const segment of segments) {
+                if (segment.startsWith('**') && segment.endsWith('**')) {
+                  const boldText = segment.slice(2, -2);
+                  pdf.setFont(contentFont, 'bold');
+                  pdf.text(boldText, xPos, textY);
+                  xPos += pdf.getTextWidth(boldText);
+                  pdf.setFont(contentFont, 'normal');
+                } else if (segment) {
+                  pdf.setFont(contentFont, 'normal');
+                  pdf.text(segment, xPos, textY);
+                  xPos += pdf.getTextWidth(segment);
+                }
               }
             }
             textY += lineHeight;
@@ -838,6 +878,7 @@ const Detect: React.FC = () => {
     }
 
     // Add footer on last page
+    pdf.setFont('helvetica', 'normal');
     yPosition = pageHeight - 15;
     
     // Footer with subtle gradient background effect

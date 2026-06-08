@@ -1,6 +1,8 @@
 {
   "dependencies": {
     "@supabase/supabase-js": "^2.39.0",
+    "arabic-reshaper": "^1.1.0",
+    "bidi-js": "^1.0.3",
     "jspdf": "^2.5.1",
     "lucide-react": "^0.294.0",
     "react": "^18.3.1",
