@@ -5,6 +5,7 @@ import { checkRateLimit, getRateLimitConfig, recordSubmission } from '../service
 import { AuthenticatedRequest } from '../types';
 import { extractFrames } from '../services/videoProcessor';
 import { SYSTEM_PROMPT } from '../prompts/system-prompt';
+import franc from 'franc';
 
 const router = Router();
 
@@ -127,6 +128,38 @@ async function translateToEnglish(text: string): Promise<string> {
 }
 
 /**
+ * Safety net for the "ACT must always answer in English" rule. ACT's IHRA
+ * analysis is always English, but when it bypasses the analysis to answer a
+ * user's question it can reply in the question's language. The n8n prompt is
+ * the primary fix; this is a backstop in case a foreign reply slips through.
+ *
+ * Language detection runs locally (franc), so genuine English output is never
+ * sent to the model and is returned untouched — only a confidently non-English
+ * reply is translated to English.
+ */
+async function ensureEnglish(text: string): Promise<string> {
+  if (!text || text.trim().length < 10) return text;
+
+  let lang = 'und';
+  try {
+    lang = franc(text, { minLength: 10 });
+  } catch {
+    return text;
+  }
+  // 'und' = undetermined (usually too short) — leave as-is to avoid mangling.
+  if (lang === 'eng' || lang === 'und') return text;
+
+  try {
+    const translated = await translateToEnglish(text);
+    if (!translated || /^english_only[.!]?$/i.test(translated.trim())) return text;
+    return translated;
+  } catch (err) {
+    console.warn('ensureEnglish translation failed, returning original:', err);
+    return text;
+  }
+}
+
+/**
  * Sends a payload to the n8n webhook and returns the parsed response.
  */
 async function sendToN8n(payload: Record<string, unknown>): Promise<{ output?: string }> {
@@ -233,7 +266,7 @@ router.post('/chat', optionalAuth, async (req: AuthenticatedRequest, res: Respon
       };
 
       const n8nData = await sendToN8n(n8nPayload);
-      output = n8nData?.output || 'Could not analyze the image.';
+      output = await ensureEnglish(n8nData?.output || 'Could not analyze the image.');
       await recordSubmission(userId, sid, 'image');
       res.json({ output });
       return;
@@ -247,7 +280,7 @@ router.post('/chat', optionalAuth, async (req: AuthenticatedRequest, res: Respon
     };
 
     const n8nData = await sendToN8n(n8nPayload);
-    output = n8nData?.output || 'Could not analyze the message.';
+    output = await ensureEnglish(n8nData?.output || 'Could not analyze the message.');
     await recordSubmission(userId, sid, 'text');
     res.json({ output });
 

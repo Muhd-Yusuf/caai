@@ -9,6 +9,8 @@ import StructuredOutput from '../components/StructuredOutput';
 import {
   detectScript,
   fontForScript,
+  isRtlScript,
+  needsReshape,
   reshapeArabic,
   toVisualOrder,
   ensureUnicodeFonts,
@@ -734,12 +736,13 @@ const Detect: React.FC = () => {
         // ordering; other non-Latin scripts use NotoSans.
         const script = detectScript(message.content.content);
         const contentFont = fontForScript(script);
-        const isRTL = script === 'arabic';
+        const isRTL = isRtlScript(script);
         pdf.setFont(contentFont, 'normal');
 
         // For Arabic, join letters into their presentation forms before we
         // measure and wrap, so widths and line breaks match what we draw.
-        const layoutText = isRTL ? reshapeArabic(spacedText) : spacedText;
+        // (Hebrew is right-to-left but its letters don't join, so no reshaping.)
+        const layoutText = needsReshape(script) ? reshapeArabic(spacedText) : spacedText;
 
         // Strip bold markers for wrapping calculation only
         const plainText = layoutText.replace(/\*\*(.+?)\*\*/g, '$1');
