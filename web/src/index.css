@@ -3,12 +3,12 @@
 @tailwind utilities;
 
 .message-container {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
+  /* Default-width scrollbar so it matches the translation panel's scrollbar. */
+  scrollbar-color: rgba(156, 163, 175, 0.6) transparent;
 }
 
 .message-container::-webkit-scrollbar {
-  width: 6px;
+  width: 14px;
 }
 
 .message-container::-webkit-scrollbar-track {
@@ -16,8 +16,10 @@
 }
 
 .message-container::-webkit-scrollbar-thumb {
-  background-color: rgba(156, 163, 175, 0.5);
-  border-radius: 3px;
+  background-color: rgba(156, 163, 175, 0.6);
+  border-radius: 7px;
+  border: 4px solid transparent;
+  background-clip: padding-box;
 }
 
 .message-bubble {

@@ -18,12 +18,19 @@ import {
   cjkRegion,
   cjkFontName,
   ensureCjkFont,
+  PDF_UNSUPPORTED_PLACEHOLDER,
 } from '../utils/pdfText';
 
 Modal.setAppElement('#root');
 
 // Generate a new session ID each time the page loads
 const sessionId = crypto.randomUUID();
+
+// Initial greeting. Rendered as markdown, so *text* shows the example prompts
+// in italics.
+const WELCOME_MESSAGE =
+  "Hello! I can help you detect antisemitic content in text or images. Please share what you'd like me to analyze.\n\n" +
+  "You may ask me questions such as *What is the Jewish blood libel?* Direct me for further information on content I've analyzed: *Tell me more.* Or instruct me to expand on my response. For example...";
 
 type RateLimitState = { max: number | null; windowHours: number | null; resetAt: number };
 
@@ -86,7 +93,7 @@ const Detect: React.FC = () => {
   const [messages, setMessages] = useState<Array<{ content: { type: string, content: string, fileSize?: string }, isUser: boolean }>>([{
     content: {
       type: 'text',
-      content: 'Hello! I can help you detect antisemitic content in text or images. Please share what you\'d like me to analyze.\n\nYou may also ask me questions or direct me to expand my response. For example: Expand on the topic in relation to the last image analyzed.'
+      content: WELCOME_MESSAGE
     },
     isUser: false
   }]);
@@ -756,7 +763,10 @@ const Detect: React.FC = () => {
         // For Arabic, join letters into their presentation forms before we
         // measure and wrap, so widths and line breaks match what we draw.
         // (Hebrew is right-to-left but its letters don't join, so no reshaping.)
-        const layoutText = needsReshape(script) ? reshapeArabic(spacedText) : spacedText;
+        // Scripts jsPDF can't render correctly show a placeholder instead.
+        const layoutText = script === 'unsupported'
+          ? PDF_UNSUPPORTED_PLACEHOLDER
+          : needsReshape(script) ? reshapeArabic(spacedText) : spacedText;
 
         // Strip bold markers for wrapping calculation only
         const plainText = layoutText.replace(/\*\*(.+?)\*\*/g, '$1');
@@ -1071,7 +1081,7 @@ const Detect: React.FC = () => {
                       setMessages([{
                         content: {
                           type: 'text',
-                          content: 'Hello! I can help you detect antisemitic content in text or images. Please share what you\'d like me to analyze.\n\nYou may also ask me questions or direct me to expand my response. For example: Expand on the topic in relation to the last image analyzed.'
+                          content: WELCOME_MESSAGE
                         },
                         isUser: false
                       }]);
