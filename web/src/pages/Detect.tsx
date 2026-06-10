@@ -15,6 +15,9 @@ import {
   toVisualOrder,
   ensureUnicodeFonts,
   registerUnicodeFonts,
+  cjkRegion,
+  cjkFontName,
+  ensureCjkFont,
 } from '../utils/pdfText';
 
 Modal.setAppElement('#root');
@@ -735,8 +738,19 @@ const Detect: React.FC = () => {
         // uses an embedded Arabic font with letter-joining + right-to-left
         // ordering; other non-Latin scripts use NotoSans.
         const script = detectScript(message.content.content);
-        const contentFont = fontForScript(script);
+        let contentFont = fontForScript(script);
         const isRTL = isRtlScript(script);
+        // CJK fonts are fetched on demand (only when CJK is actually present).
+        if (script === 'cjk') {
+          const region = cjkRegion(message.content.content);
+          try {
+            await ensureCjkFont(pdf, region);
+            contentFont = cjkFontName(region);
+          } catch (err) {
+            console.warn('CJK font unavailable, falling back:', err);
+            contentFont = 'helvetica';
+          }
+        }
         pdf.setFont(contentFont, 'normal');
 
         // For Arabic, join letters into their presentation forms before we
