@@ -18,6 +18,7 @@ import {
   cjkRegion,
   cjkFontName,
   ensureCjkFont,
+  renderTextToImage,
   PDF_UNSUPPORTED_PLACEHOLDER,
 } from '../utils/pdfText';
 
@@ -702,6 +703,52 @@ const Detect: React.FC = () => {
           yPosition += errorBubbleHeight + 5;
         }
       } else {
+        // Complex-script messages (Indic such as Hindi/Gujarati/Punjabi, Thai,
+        // etc.) can't be shaped by jsPDF. Render them as an image via the
+        // browser, which shapes them correctly, then place it in the bubble.
+        if (detectScript(message.content.content) === 'unsupported') {
+          try {
+            const isUser = message.isUser;
+            const innerWidthMm = messageMaxWidth - 10;
+            const color = isUser ? '#ffffff' : '#1f2937';
+            const rendered = await renderTextToImage(message.content.content, {
+              widthPx: 620,
+              color,
+              fontSizePx: 17,
+            });
+
+            let imgWidthMm = innerWidthMm;
+            let imgHeightMm = imgWidthMm * (rendered.heightPx / rendered.widthPx);
+            // Scale down if a single bubble would exceed a full page.
+            const maxBubbleH = pageHeight - margin * 2 - 10;
+            if (imgHeightMm + 10 > maxBubbleH) {
+              const s = (maxBubbleH - 10) / imgHeightMm;
+              imgHeightMm *= s;
+              imgWidthMm *= s;
+            }
+            const bubbleWidth = imgWidthMm + 10;
+            const bubbleHeight = imgHeightMm + 10;
+
+            checkAndAddPage(bubbleHeight + 10);
+            const bubbleX = isUser ? pageWidth - margin - bubbleWidth : margin;
+            if (isUser) {
+              pdf.setFillColor(userBubbleColor.r, userBubbleColor.g, userBubbleColor.b);
+              pdf.roundedRect(bubbleX, yPosition, bubbleWidth, bubbleHeight, 3, 3, 'F');
+            } else {
+              pdf.setFillColor(aiBubbleColor.r, aiBubbleColor.g, aiBubbleColor.b);
+              pdf.setDrawColor(229, 229, 229);
+              pdf.setLineWidth(0.5);
+              pdf.roundedRect(bubbleX, yPosition, bubbleWidth, bubbleHeight, 3, 3, 'FD');
+            }
+            pdf.addImage(rendered.dataUrl, 'PNG', bubbleX + 5, yPosition + 5, imgWidthMm, imgHeightMm);
+            yPosition += bubbleHeight + 5;
+            continue;
+          } catch (err) {
+            console.warn('Image-based bubble render failed, using placeholder:', err);
+            // Fall through to the text path, which renders the placeholder.
+          }
+        }
+
         // Handle text messages — preserve bold markers, strip other markdown
         const messageText = message.isUser ? message.content.content : message.content.content
           .replace(/^#{1,6}\s+/gm, '')       // headers
