@@ -31,7 +31,7 @@ const sessionId = crypto.randomUUID();
 // in italics.
 const WELCOME_MESSAGE =
   "Hello! I can help you detect antisemitic content in text or images. Please share what you'd like me to analyze.\n\n" +
-  "You may ask me questions such as *What is the Jewish blood libel?* Direct me for further information on content I've analyzed: *Tell me more.* Or instruct me to expand on my response. For example...";
+  "You may ask me questions too such as *What is the Jewish blood libel?* Direct me for further information on content I've analyzed: *Tell me more.* Or instruct me to expand on my response. For example: Expand on the topic in relation to the last image analyzed.";
 
 type RateLimitState = { max: number | null; windowHours: number | null; resetAt: number };
 
@@ -752,11 +752,10 @@ const Detect: React.FC = () => {
         // Handle text messages — preserve bold markers, strip other markdown
         const messageText = message.isUser ? message.content.content : message.content.content
           .replace(/^#{1,6}\s+/gm, '')       // headers
-          .replace(/\*\*(.+?)\*\*/g, '!!BOLD!!$1!!ENDBOLD!!')  // protect ** bold first
-          .replace(/\*([^*]+?)\*/g, '!!BOLD!!$1!!ENDBOLD!!')   // normalize single * to bold too
-          .replace(/!!BOLD!!/g, '**').replace(/!!ENDBOLD!!/g, '**') // restore as **
-          .replace(/__(.+?)__/g, '**$1**')   // bold alt → normalize to **
-          .replace(/_(.+?)_/g, '$1')         // italic alt
+          // Keep **bold** and *italic* markers intact so the renderer below can
+          // style them (and so italics survive line wrapping).
+          .replace(/__(.+?)__/g, '**$1**')   // __bold__ → **bold**
+          .replace(/(?<![\w*])_([^_\n]+?)_(?![\w*])/g, '*$1*') // _italic_ → *italic*
           .replace(/~~(.+?)~~/g, '$1')       // strikethrough
           .replace(/`{1,3}([^`]+)`{1,3}/g, '$1') // inline/block code
           .replace(/^[ \t]*o[ \t]+/gm, '  ')  // strip "o " bullet prefix (PDF artifact)
@@ -815,23 +814,86 @@ const Detect: React.FC = () => {
           ? PDF_UNSUPPORTED_PLACEHOLDER
           : needsReshape(script) ? reshapeArabic(spacedText) : spacedText;
 
-        // Strip bold markers for wrapping calculation only
-        const plainText = layoutText.replace(/\*\*(.+?)\*\*/g, '$1');
-        const wrappedPlain = wrapText(plainText, messageMaxWidth - 15, 10);
-        const lineHeight = 5;
-        // Extra height for verdict badge if IHRA
-        const verdictHeight = isIHRA ? 12 : 0;
-        const bubbleHeight = wrappedPlain.length * lineHeight + 20 + verdictHeight;
+        // Tokenize **bold**/*italic* into styled runs, then word-wrap into
+        // styled lines so emphasis survives line breaks (the old per-line parser
+        // left stray ** when a span wrapped across two lines). RTL, CJK and
+        // placeholder text have no markers, so this is just plain wrapping there.
+        type Tok = { word: string; style: 'normal' | 'bold' | 'italic' };
+        // *italic* (welcome prompts) renders italic to match ACT; **bold** (IHRA
+        // headings) renders bold. Non-helvetica fonts have no italic registered,
+        // so fall back to bold there (those paths carry no emphasis in practice).
+        const fontStyleOf = (s: Tok['style']): 'normal' | 'bold' | 'italic' =>
+          s === 'normal' ? 'normal' : s === 'bold' ? 'bold' : (contentFont === 'helvetica' ? 'italic' : 'bold');
+        const toRuns = (t: string): { text: string; style: Tok['style'] }[] => {
+          const runs: { text: string; style: Tok['style'] }[] = [];
+          let bold = false, italic = false, buf = '';
+          const flush = () => { if (buf) { runs.push({ text: buf, style: bold ? 'bold' : italic ? 'italic' : 'normal' }); buf = ''; } };
+          for (let i = 0; i < t.length;) {
+            if (t.startsWith('**', i)) { flush(); bold = !bold; i += 2; }
+            else if (t[i] === '*') { flush(); italic = !italic; i += 1; }
+            else { buf += t[i]; i++; }
+          }
+          flush();
+          return runs;
+        };
 
-        // Also wrap the text WITH bold markers to render bold segments
-        const wrappedBold = wrapText(layoutText, messageMaxWidth - 15, 10);
+        const lineHeight = 5;
+        const verdictHeight = isIHRA ? 12 : 0;
+        const innerWidth = messageMaxWidth - 15;
+
+        pdf.setFontSize(10);
+        pdf.setFont(contentFont, 'normal');
+        // jsPDF trims leading/trailing whitespace when measuring, so a space at a
+        // bold/italic boundary disappears. Tokenize into bare words and re-insert
+        // a measured space between them to keep boundaries correctly spaced.
+        const SPACE_W = pdf.getTextWidth('x x') - pdf.getTextWidth('xx');
+
+        // styledLines: each line is a list of word tokens. Emphasised text gets
+        // one token per word so styles can change mid-line; everything else (CJK,
+        // RTL, placeholder) uses one token holding the whole wrapped line, via
+        // splitTextToSize, which also breaks long unspaced runs such as CJK.
+        const styledLines: Tok[][] = [];
+        if (!isRTL && layoutText.includes('*')) {
+          let cur: Tok[] = [];
+          let curW = 0;
+          const pushLine = () => { styledLines.push(cur); cur = []; curW = 0; };
+          for (const run of toRuns(layoutText)) {
+            const segs = run.text.split('\n');
+            for (let s = 0; s < segs.length; s++) {
+              if (s > 0) pushLine();
+              for (const word of segs[s].split(' ')) {
+                if (word === '') continue;
+                pdf.setFont(contentFont, fontStyleOf(run.style));
+                const w = pdf.getTextWidth(word);
+                const need = (cur.length > 0 ? SPACE_W : 0) + w;
+                if (curW + need > innerWidth && cur.length > 0) {
+                  pushLine();
+                  cur.push({ word, style: run.style });
+                  curW = w;
+                } else {
+                  cur.push({ word, style: run.style });
+                  curW += need;
+                }
+              }
+            }
+          }
+          pushLine();
+        } else {
+          const plain = layoutText.replace(/\*\*?([^*]+?)\*\*?/g, '$1');
+          pdf.setFont(contentFont, 'normal');
+          for (const line of pdf.splitTextToSize(plain, innerWidth)) {
+            styledLines.push([{ word: line, style: 'normal' }]);
+          }
+        }
+        const plainLines = styledLines.map((line) =>
+          line.length > 1 ? line.map((t) => t.word).join(' ') : (line[0]?.word ?? '')
+        );
 
         // Calculate bubble width based on content
         let bubbleWidth = 0;
-        pdf.setFontSize(10);
-        for (const line of wrappedPlain) {
-          const lineWidth = pdf.getTextWidth(line);
-          bubbleWidth = Math.max(bubbleWidth, lineWidth);
+        pdf.setFont(contentFont, 'normal');
+        for (const pl of plainLines) {
+          bubbleWidth = Math.max(bubbleWidth, pdf.getTextWidth(pl));
         }
         bubbleWidth = Math.min(bubbleWidth + 20, messageMaxWidth);
 
@@ -853,7 +915,7 @@ const Detect: React.FC = () => {
         const topPadding = 10;
         const bottomPadding = 6;
 
-        while (lineIdx < wrappedBold.length) {
+        while (lineIdx < styledLines.length) {
           // If barely any space left on the current page, jump to a new page first
           if (yPosition + topPadding + lineHeight + bottomPadding > pageHeight - margin) {
             pdf.addPage();
@@ -865,12 +927,13 @@ const Detect: React.FC = () => {
           const chunkVerdictHeight = (isFirstChunk && isIHRA) ? verdictHeight : 0;
           const availableHeight = (pageHeight - margin) - yPosition - bottomPadding - topPadding - chunkVerdictHeight;
           const linesThatFit = Math.max(1, Math.floor(availableHeight / lineHeight));
-          const chunkLines = wrappedBold.slice(lineIdx, lineIdx + linesThatFit);
+          const chunkLines = styledLines.slice(lineIdx, lineIdx + linesThatFit);
+          const chunkPlain = plainLines.slice(lineIdx, lineIdx + linesThatFit);
 
           // Compute exact chunk height including empty-line spacing
           let chunkContentHeight = 0;
-          for (const line of chunkLines) {
-            chunkContentHeight += line.trim() === '' ? 2 : lineHeight;
+          for (const pl of chunkPlain) {
+            chunkContentHeight += pl.trim() === '' ? 2 : lineHeight;
           }
           const chunkBubbleHeight = chunkContentHeight + topPadding + bottomPadding + chunkVerdictHeight;
 
@@ -913,32 +976,40 @@ const Detect: React.FC = () => {
             pdf.setTextColor(31, 41, 55);
           }
 
-          for (const line of chunkLines) {
-            if (line.trim() === '') {
+          for (let li = 0; li < chunkLines.length; li++) {
+            const runs = chunkLines[li];
+            const plain = chunkPlain[li];
+            if (plain.trim() === '') {
               textY += 2;
               continue;
             }
             if (isRTL) {
               // Reorder the (already reshaped) line to visual order and draw it
               // right-aligned against the inside edge of the bubble.
-              const visual = toVisualOrder(line.replace(/\*\*/g, ''));
+              const visual = toVisualOrder(plain);
               pdf.setFont(contentFont, 'normal');
               pdf.text(visual, bubbleX + bubbleWidth - 10, textY, { align: 'right' });
             } else {
-              const segments = line.split(/(\*\*[^*]+\*\*)/g);
-              let xPos = bubbleX + 10;
-              for (const segment of segments) {
-                if (segment.startsWith('**') && segment.endsWith('**')) {
-                  const boldText = segment.slice(2, -2);
-                  pdf.setFont(contentFont, 'bold');
-                  pdf.text(boldText, xPos, textY);
-                  xPos += pdf.getTextWidth(boldText);
-                  pdf.setFont(contentFont, 'normal');
-                } else if (segment) {
-                  pdf.setFont(contentFont, 'normal');
-                  pdf.text(segment, xPos, textY);
-                  xPos += pdf.getTextWidth(segment);
+              // Render each same-style segment once, positioned by measuring the
+              // plain-text prefix in the normal font. Every segment lands where a
+              // single normal-weight line would put it, so word spacing is correct
+              // and bold/italic boundaries are not cramped — without double-drawing.
+              let charPos = 0;
+              let ti = 0;
+              while (ti < runs.length) {
+                const style = runs[ti].style;
+                const segStart = charPos;
+                const words: string[] = [];
+                while (ti < runs.length && runs[ti].style === style) {
+                  words.push(runs[ti].word);
+                  charPos += runs[ti].word.length + 1; // +1 for the joining space
+                  ti++;
                 }
+                const prefix = plain.substring(0, segStart);
+                pdf.setFont(contentFont, 'normal');
+                const x = bubbleX + 10 + pdf.getTextWidth(prefix) + (prefix.endsWith(' ') ? SPACE_W : 0);
+                pdf.setFont(contentFont, fontStyleOf(style));
+                pdf.text(words.join(' '), x, textY);
               }
             }
             textY += lineHeight;
