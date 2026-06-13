@@ -31,7 +31,7 @@ const sessionId = crypto.randomUUID();
 // in italics.
 const WELCOME_MESSAGE =
   "Hello! I can help you detect antisemitic content in text or images. Please share what you'd like me to analyze.\n\n" +
-  "You may ask me questions too such as *What is the Jewish blood libel?* Direct me for further information on content I've analyzed: *Tell me more.* Or instruct me to expand on my response. For example: Expand on the topic in relation to the last image analyzed.";
+  "You may ask me questions too such as *What is the Jewish blood libel?* Direct me for further information on content I've analyzed: *Tell me more.* Or instruct me to expand on my response. For example: *Expand on the topic in relation to the last image analyzed.* Text may be entered in a variety of languages in addition to English.";
 
 type RateLimitState = { max: number | null; windowHours: number | null; resetAt: number };
 
@@ -857,22 +857,43 @@ const Detect: React.FC = () => {
           let cur: Tok[] = [];
           let curW = 0;
           const pushLine = () => { styledLines.push(cur); cur = []; curW = 0; };
+          // Break a single token wider than the bubble's inner width into pieces
+          // that fit, so long unbreakable runs (URLs, file paths, unspaced CJK)
+          // wrap inside the bubble instead of overflowing past the page edge.
+          const breakLongWord = (word: string, style: Tok['style']): string[] => {
+            pdf.setFont(contentFont, fontStyleOf(style));
+            if (pdf.getTextWidth(word) <= innerWidth) return [word];
+            const pieces: string[] = [];
+            let piece = '';
+            for (const ch of word) {
+              if (piece && pdf.getTextWidth(piece + ch) > innerWidth) {
+                pieces.push(piece);
+                piece = ch;
+              } else {
+                piece += ch;
+              }
+            }
+            if (piece) pieces.push(piece);
+            return pieces;
+          };
           for (const run of toRuns(layoutText)) {
             const segs = run.text.split('\n');
             for (let s = 0; s < segs.length; s++) {
               if (s > 0) pushLine();
-              for (const word of segs[s].split(' ')) {
-                if (word === '') continue;
-                pdf.setFont(contentFont, fontStyleOf(run.style));
-                const w = pdf.getTextWidth(word);
-                const need = (cur.length > 0 ? SPACE_W : 0) + w;
-                if (curW + need > innerWidth && cur.length > 0) {
-                  pushLine();
-                  cur.push({ word, style: run.style });
-                  curW = w;
-                } else {
-                  cur.push({ word, style: run.style });
-                  curW += need;
+              for (const rawWord of segs[s].split(' ')) {
+                if (rawWord === '') continue;
+                for (const word of breakLongWord(rawWord, run.style)) {
+                  pdf.setFont(contentFont, fontStyleOf(run.style));
+                  const w = pdf.getTextWidth(word);
+                  const need = (cur.length > 0 ? SPACE_W : 0) + w;
+                  if (curW + need > innerWidth && cur.length > 0) {
+                    pushLine();
+                    cur.push({ word, style: run.style });
+                    curW = w;
+                  } else {
+                    cur.push({ word, style: run.style });
+                    curW += need;
+                  }
                 }
               }
             }
@@ -990,26 +1011,30 @@ const Detect: React.FC = () => {
               pdf.setFont(contentFont, 'normal');
               pdf.text(visual, bubbleX + bubbleWidth - 10, textY, { align: 'right' });
             } else {
-              // Render each same-style segment once, positioned by measuring the
-              // plain-text prefix in the normal font. Every segment lands where a
-              // single normal-weight line would put it, so word spacing is correct
-              // and bold/italic boundaries are not cramped — without double-drawing.
-              let charPos = 0;
+              // Render each same-style segment as a single pdf.text call and
+              // advance x by that segment's ACTUAL (styled) width plus a measured
+              // space. Advancing by the real bold/italic width keeps the next
+              // word from overlapping a wide bold heading (e.g. "Denial: The..."),
+              // while the single call keeps each segment's internal spacing exact.
+              let xPos = bubbleX + 10;
               let ti = 0;
               while (ti < runs.length) {
                 const style = runs[ti].style;
-                const segStart = charPos;
                 const words: string[] = [];
-                while (ti < runs.length && runs[ti].style === style) {
-                  words.push(runs[ti].word);
-                  charPos += runs[ti].word.length + 1; // +1 for the joining space
-                  ti++;
+                while (ti < runs.length && runs[ti].style === style) { words.push(runs[ti].word); ti++; }
+                const text = words.join(' ');
+                const fStyle = fontStyleOf(style);
+                pdf.setFont(contentFont, fStyle);
+                pdf.text(text, xPos, textY);
+                xPos += pdf.getTextWidth(text);
+                if (ti < runs.length) {
+                  xPos += SPACE_W;
+                  // Italic glyphs slant into the following word, so the plain
+                  // space looks cramped at an italic boundary — add a little extra.
+                  if (fStyle === 'italic' || fontStyleOf(runs[ti].style) === 'italic') {
+                    xPos += SPACE_W * 0.6;
+                  }
                 }
-                const prefix = plain.substring(0, segStart);
-                pdf.setFont(contentFont, 'normal');
-                const x = bubbleX + 10 + pdf.getTextWidth(prefix) + (prefix.endsWith(' ') ? SPACE_W : 0);
-                pdf.setFont(contentFont, fontStyleOf(style));
-                pdf.text(words.join(' '), x, textY);
               }
             }
             textY += lineHeight;
