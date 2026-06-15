@@ -564,7 +564,12 @@ const Detect: React.FC = () => {
     
     pdf.setFontSize(10);
     pdf.setTextColor(147, 197, 253); // Blue-100 for subtitle
-    const timestamp = new Date().toLocaleString();
+    // Month-name format (e.g. "15 June 2026, 14:37") so the date is unambiguous
+    // for a US-English audience rather than locale-dependent DD/MM vs MM/DD.
+    const timestamp = new Date().toLocaleString('en-GB', {
+      day: 'numeric', month: 'long', year: 'numeric',
+      hour: '2-digit', minute: '2-digit', hour12: false,
+    });
     pdf.text(timestamp, margin, 21);
     
     yPosition = 35;
@@ -758,7 +763,7 @@ const Detect: React.FC = () => {
           .replace(/(?<![\w*])_([^_\n]+?)_(?![\w*])/g, '*$1*') // _italic_ → *italic*
           .replace(/~~(.+?)~~/g, '$1')       // strikethrough
           .replace(/`{1,3}([^`]+)`{1,3}/g, '$1') // inline/block code
-          .replace(/^[ \t]*o[ \t]+/gm, '  ')  // strip "o " bullet prefix (PDF artifact)
+          .replace(/^[ \t]*o(?:\t+| {2,})/gm, '  ')  // strip "o " bullet prefix (PDF artifact); require tab/2+ spaces so it doesn't eat the Portuguese article "o "
           .replace(/^\s*[-*+]\s+/gm, '  - ') // bullet lists
           .replace(/^\s*\d+\.\s+/gm, (m) => '  ' + m.trim() + ' ') // numbered lists
           .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // links
@@ -1006,10 +1011,17 @@ const Detect: React.FC = () => {
             }
             if (isRTL) {
               // Reorder the (already reshaped) line to visual order and draw it
-              // right-aligned against the inside edge of the bubble.
+              // right-aligned against the inside edge of the bubble. Mark it as
+              // already-visual so jsPDF does NOT re-run its own Arabic reshaping
+              // + bidi (the double pass mis-aligned short Arabic lines and
+              // slightly mis-shaped glyphs).
               const visual = toVisualOrder(plain);
               pdf.setFont(contentFont, 'normal');
-              pdf.text(visual, bubbleX + bubbleWidth - 10, textY, { align: 'right' });
+              pdf.text(visual, bubbleX + bubbleWidth - 10, textY, {
+                align: 'right',
+                isInputVisual: true,
+                isOutputVisual: true,
+              });
             } else {
               // Render each same-style segment as a single pdf.text call and
               // advance x by that segment's ACTUAL (styled) width plus a measured
