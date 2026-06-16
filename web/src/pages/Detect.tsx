@@ -754,8 +754,12 @@ const Detect: React.FC = () => {
           }
         }
 
+        // Strip zero-width spaces (U+200B) and BOM (U+FEFF). Some inputs
+        // (notably Portuguese) carry hidden U+200B that have no glyph in the PDF
+        // font and corrupt the rendered line.
+        const rawText = message.content.content.replace(/[\u200B\uFEFF]/g, '');
         // Handle text messages — preserve bold markers, strip other markdown
-        const messageText = message.isUser ? message.content.content : message.content.content
+        const messageText = message.isUser ? rawText : rawText
           .replace(/^#{1,6}\s+/gm, '')       // headers
           // Keep **bold** and *italic* markers intact so the renderer below can
           // style them (and so italics survive line wrapping).
@@ -1011,17 +1015,10 @@ const Detect: React.FC = () => {
             }
             if (isRTL) {
               // Reorder the (already reshaped) line to visual order and draw it
-              // right-aligned against the inside edge of the bubble. Mark it as
-              // already-visual so jsPDF does NOT re-run its own Arabic reshaping
-              // + bidi (the double pass mis-aligned short Arabic lines and
-              // slightly mis-shaped glyphs).
+              // right-aligned against the inside edge of the bubble.
               const visual = toVisualOrder(plain);
               pdf.setFont(contentFont, 'normal');
-              pdf.text(visual, bubbleX + bubbleWidth - 10, textY, {
-                align: 'right',
-                isInputVisual: true,
-                isOutputVisual: true,
-              });
+              pdf.text(visual, bubbleX + bubbleWidth - 10, textY, { align: 'right' });
             } else {
               // Render each same-style segment as a single pdf.text call and
               // advance x by that segment's ACTUAL (styled) width plus a measured
@@ -1038,6 +1035,12 @@ const Detect: React.FC = () => {
                 const fStyle = fontStyleOf(style);
                 pdf.setFont(contentFont, fStyle);
                 pdf.text(text, xPos, textY);
+                // CJK is drawn as embedded vector text in a single-weight font,
+                // so it has no bold variant and looks thin. Fake a heavier weight
+                // by drawing it again with a tiny horizontal offset.
+                if (contentFont.startsWith('NotoCJK')) {
+                  pdf.text(text, xPos + 0.12, textY);
+                }
                 xPos += pdf.getTextWidth(text);
                 if (ti < runs.length) {
                   xPos += SPACE_W;
