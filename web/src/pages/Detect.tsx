@@ -138,7 +138,7 @@ const Detect: React.FC = () => {
   );
 
   const createMessageElement = (message: { type: string; content: string; fileSize?: string }, isUser: boolean) => (
-    <div className={`flex ${isUser ? 'justify-end' : 'justify-start'} mb-4`}>
+    <div className={`flex ${isUser ? 'justify-end mt-8' : 'justify-start'} mb-4`}>
       <div className={message.type === 'image' || message.type === 'video' ? 'message-bubble' : `message-bubble rounded-lg p-3 ${
         isUser ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-800'
       }`}>
