@@ -241,8 +241,10 @@ router.post('/admin-login', async (req: Request, res: Response) => {
   }
 });
 
-// POST /api/auth/admin-logout — Clear admin session
-router.post('/admin-logout', authenticateAdmin, (_req: AdminRequest, res: Response) => {
+// POST /api/auth/admin-logout — Clear admin session. No auth guard: logout must
+// always succeed in clearing the cookie, even when the token is already invalid
+// (e.g. right after a password change, which revokes the Supabase session).
+router.post('/admin-logout', (_req: Request, res: Response) => {
   res.clearCookie('caai_admin_token');
   res.json({ message: 'Logged out' });
 });

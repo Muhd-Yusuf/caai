@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, FileText, Image, Search } from 'lucide-react';
+import { ArrowLeft, FileText, Image, Search, HelpCircle, Globe } from 'lucide-react';
 
 const HowToUseACT: React.FC = () => {
   // Scroll to top when component mounts
@@ -57,6 +57,53 @@ const HowToUseACT: React.FC = () => {
                 
                 <p className="text-lg">
                   Text may be a short piece as below or a document of many pages.
+                </p>
+
+                <p className="text-lg">
+                  You can also save or export a record of your analysis to a PDF
+                  using the Save button.
+                </p>
+              </div>
+            </section>
+
+            {/* Asking Questions & Follow-ups */}
+            <section className="bg-white bg-opacity-10 rounded-xl p-6 md:p-8 backdrop-blur-sm">
+              <div className="flex items-center mb-6">
+                <HelpCircle className="w-8 h-8 text-blue-300 mr-3" />
+                <h2 className="text-2xl md:text-3xl font-bold text-white">Ask Questions &amp; Get More Detail</h2>
+              </div>
+
+              <div className="space-y-4 text-blue-100 text-lg">
+                <p>
+                  As well as submitting content for analysis, you can ask the ACT
+                  questions, for example <span className="italic">"What is the Jewish blood libel?"</span>
+                </p>
+                <p>
+                  You can direct it for further information on content it has
+                  already analysed, for example <span className="italic">"Tell me more"</span>,
+                  or instruct it to expand on its response, for example
+                  <span className="italic"> "Expand on the topic in relation to the last image analysed."</span>
+                </p>
+              </div>
+            </section>
+
+            {/* Languages */}
+            <section className="bg-white bg-opacity-10 rounded-xl p-6 md:p-8 backdrop-blur-sm">
+              <div className="flex items-center mb-6">
+                <Globe className="w-8 h-8 text-green-300 mr-3" />
+                <h2 className="text-2xl md:text-3xl font-bold text-white">Languages</h2>
+              </div>
+
+              <div className="space-y-4 text-blue-100 text-lg">
+                <p>
+                  Content may be entered in a wide variety of languages in addition
+                  to English. The ACT will analyse it and give its response in
+                  English.
+                </p>
+                <p>
+                  If you have entered text in another language and would like to read
+                  it in English, use the <span className="italic">Translate last</span> button
+                  to see a translation of your most recent entry.
                 </p>
               </div>
             </section>

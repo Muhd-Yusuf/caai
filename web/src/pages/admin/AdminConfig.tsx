@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, AlertCircle, Check } from 'lucide-react';
 import { useAdminAuth } from '../../hooks/useAdminAuth';
 import { api } from '../../services/api';
@@ -10,7 +10,8 @@ interface RateLimitConfig {
 }
 
 const AdminConfig: React.FC = () => {
-  const { changePassword } = useAdminAuth();
+  const { changePassword, logout } = useAdminAuth();
+  const navigate = useNavigate();
 
   // Rate limit config
   const [maxSubmissions, setMaxSubmissions] = useState(10);
@@ -83,11 +84,18 @@ const AdminConfig: React.FC = () => {
 
     try {
       await changePassword(currentPassword, newPassword);
-      setPasswordMessage('Password changed successfully');
+      // Changing the password revokes the current Supabase session, so the
+      // existing token is now dead. Sign out cleanly and send the admin back to
+      // the login page to re-authenticate with the new password (this avoids the
+      // locked-out state and ensures the next "current password" is the new one).
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
-      setTimeout(() => setPasswordMessage(''), 3000);
+      setPasswordMessage('Password changed. Please log in again with your new password.');
+      setTimeout(async () => {
+        await logout();
+        navigate('/admin/login');
+      }, 1800);
     } catch (err: any) {
       setPasswordError(err.message || 'Failed to change password');
     } finally {

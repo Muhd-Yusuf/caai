@@ -51,9 +51,17 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const logout = async () => {
-    await api.post('/auth/admin-logout');
-    setIsAdmin(false);
-    setAdminEmail(null);
+    // Always clear local state, even if the server call fails (e.g. the token
+    // was already invalidated by a password change) — otherwise the UI stays
+    // "logged in" with a dead session and the user is locked out.
+    try {
+      await api.post('/auth/admin-logout');
+    } catch {
+      // ignore — we clear state regardless below
+    } finally {
+      setIsAdmin(false);
+      setAdminEmail(null);
+    }
   };
 
   const changePassword = async (currentPassword: string, newPassword: string) => {
