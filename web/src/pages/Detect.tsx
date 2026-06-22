@@ -138,7 +138,7 @@ const Detect: React.FC = () => {
   );
 
   const createMessageElement = (message: { type: string; content: string; fileSize?: string }, isUser: boolean) => (
-    <div className={`flex ${isUser ? 'justify-end mt-16' : 'justify-start'} mb-4`}>
+    <div className={`flex ${isUser ? 'justify-end mt-20' : 'justify-start'} mb-4`}>
       <div className={message.type === 'image' || message.type === 'video' ? 'message-bubble' : `message-bubble rounded-lg p-3 ${
         isUser ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-800'
       }`}>
@@ -581,7 +581,7 @@ const Detect: React.FC = () => {
 
       // Extra gap before each new user (pasted) message so successive analyses
       // are visually separated in the PDF, matching the spacing on the ACT UI.
-      if (isUser && i > 0) yPosition += 12;
+      if (isUser && i > 0) yPosition += 18;
 
       // Check if we need a new page for message container
       checkAndAddPage(40);
