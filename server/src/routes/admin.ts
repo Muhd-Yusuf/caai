@@ -147,8 +147,13 @@ router.delete('/users/:id', async (req: AdminRequest, res: Response) => {
 });
 
 // GET /api/admin/config — Get rate limit settings
-router.get('/config', async (_req: AdminRequest, res: Response) => {
+router.get('/config', async (req: AdminRequest, res: Response) => {
   try {
+    // Surface the signed-in admin's email so the client can populate the hidden
+    // username field on the Change Password form — browsers need it to match and
+    // update the saved credential after a password change.
+    const email = req.adminUser?.email ?? null;
+
     const { data, error } = await supabase
       .from('app_config')
       .select('*')
@@ -156,11 +161,11 @@ router.get('/config', async (_req: AdminRequest, res: Response) => {
       .single();
 
     if (error || !data) {
-      res.json({ config: { max_submissions: 10, window_hours: 8 } });
+      res.json({ config: { max_submissions: 10, window_hours: 8 }, email });
       return;
     }
 
-    res.json({ config: data.value });
+    res.json({ config: data.value, email });
   } catch (err) {
     console.error('Get config error:', err);
     res.status(500).json({ error: 'Failed to get config' });
