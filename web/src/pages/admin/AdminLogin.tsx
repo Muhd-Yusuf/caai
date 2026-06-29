@@ -12,6 +12,20 @@ const AdminLogin: React.FC = () => {
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // After a password change the admin is sent here, but the browser commits the
+  // newly-saved credential a beat AFTER this page first loads — so the password
+  // field autofills the OLD value until a manual refresh. Reload once, on
+  // arrival, to pick up the new saved password automatically. The flag is
+  // cleared first so the reloaded page does not loop.
+  useEffect(() => {
+    if (sessionStorage.getItem('caai_pw_changed') === '1') {
+      sessionStorage.removeItem('caai_pw_changed');
+      // Small delay so the browser's password store has settled before reload.
+      const t = setTimeout(() => window.location.reload(), 600);
+      return () => clearTimeout(t);
+    }
+  }, []);
+
   useEffect(() => {
     if (!isLoading && isAdmin) {
       navigate('/admin');
@@ -66,6 +80,8 @@ const AdminLogin: React.FC = () => {
               <input
                 type="email"
                 id="admin-email"
+                name="username"
+                autoComplete="username"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 disabled={isSubmitting}
@@ -82,6 +98,7 @@ const AdminLogin: React.FC = () => {
                 <input
                   type={showPassword ? 'text' : 'password'}
                   id="admin-password"
+                  name="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   disabled={isSubmitting}

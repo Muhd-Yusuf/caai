@@ -26,9 +26,12 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
 
   const checkAdmin = useCallback(async () => {
     try {
-      // Try to access an admin endpoint to verify session
-      await api.get<{ config: unknown }>('/admin/config');
+      // Try to access an admin endpoint to verify session. This also returns the
+      // signed-in admin's email, so adminEmail survives a page reload (needed for
+      // the hidden username field on the Change Password form).
+      const data = await api.get<{ config: unknown; email?: string | null }>('/admin/config');
       setIsAdmin(true);
+      if (data?.email) setAdminEmail(data.email);
     } catch {
       setIsAdmin(false);
       setAdminEmail(null);

@@ -4,7 +4,7 @@ import { useAdminAuth } from '../hooks/useAdminAuth';
 
 // Auto sign-out after this much inactivity, so a session left idle doesn't end
 // up stuck on a dead token — it returns cleanly to the Admin Login instead.
-const IDLE_LIMIT_MS = 30 * 60 * 1000; // 30 minutes
+const IDLE_LIMIT_MS = 15 * 60 * 1000; // 15 minutes
 
 export default function AdminRoute({ children }: { children: React.ReactNode }) {
   const { isAdmin, isLoading, logout } = useAdminAuth();

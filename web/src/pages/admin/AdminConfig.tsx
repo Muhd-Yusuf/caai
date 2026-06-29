@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { ArrowLeft, AlertCircle, Check, Eye, EyeOff } from 'lucide-react';
 import { useAdminAuth } from '../../hooks/useAdminAuth';
 import { api } from '../../services/api';
@@ -16,8 +16,9 @@ const PasswordField: React.FC<{
   value: string;
   onChange: (v: string) => void;
   autoComplete: string;
+  name: string;
   minLength?: number;
-}> = ({ label, value, onChange, autoComplete, minLength }) => {
+}> = ({ label, value, onChange, autoComplete, name, minLength }) => {
   const [show, setShow] = useState(false);
   return (
     <div>
@@ -25,6 +26,7 @@ const PasswordField: React.FC<{
       <div className="relative">
         <input
           type={show ? 'text' : 'password'}
+          name={name}
           value={value}
           onChange={(e) => onChange(e.target.value)}
           autoComplete={autoComplete}
@@ -47,8 +49,7 @@ const PasswordField: React.FC<{
 };
 
 const AdminConfig: React.FC = () => {
-  const { changePassword, logout } = useAdminAuth();
-  const navigate = useNavigate();
+  const { changePassword, logout, adminEmail } = useAdminAuth();
 
   // Rate limit config
   const [maxSubmissions, setMaxSubmissions] = useState(10);
@@ -131,7 +132,19 @@ const AdminConfig: React.FC = () => {
       setPasswordMessage('Password changed. Please log in again with your new password.');
       setTimeout(async () => {
         await logout();
-        navigate('/admin/login');
+        // Flag the password change so the login page reloads itself once on
+        // arrival (see AdminLogin). The browser commits the updated saved
+        // credential slightly AFTER this navigation, so the first render of the
+        // login form still autofills the OLD password; a one-shot reload there
+        // picks up the freshly-saved NEW password without the admin having to
+        // hit refresh manually.
+        sessionStorage.setItem('caai_pw_changed', '1');
+        // Full-page navigation (not client-side routing) so the browser starts a
+        // fresh document and reliably captures the NEW credential when the admin
+        // signs in again. This is the dependable path for keeping the saved
+        // password in sync — it does not rely on the browser's in-place
+        // "Update password?" heuristic firing on the change form.
+        window.location.assign('/admin/login');
       }, 1800);
     } catch (err: any) {
       setPasswordError(err.message || 'Failed to change password');
@@ -226,14 +239,31 @@ const AdminConfig: React.FC = () => {
             <h2 className="text-xl font-bold text-gray-900 mb-4">Change Password</h2>
 
             <form onSubmit={handleChangePassword} className="space-y-4">
+              {/* Hidden username field: browsers need a username next to the
+                  password fields to know WHICH saved credential to update after a
+                  password change. Without it Chrome/Safari won't offer to update
+                  the stored password, so autofill keeps showing the old one. */}
+              <input
+                type="text"
+                name="username"
+                autoComplete="username"
+                value={adminEmail ?? ''}
+                readOnly
+                tabIndex={-1}
+                aria-hidden="true"
+                className="sr-only"
+                style={{ position: 'absolute', width: 1, height: 1, opacity: 0, pointerEvents: 'none' }}
+              />
               <PasswordField
                 label="Current Password"
+                name="current-password"
                 value={currentPassword}
                 onChange={setCurrentPassword}
                 autoComplete="current-password"
               />
               <PasswordField
                 label="New Password"
+                name="new-password"
                 value={newPassword}
                 onChange={setNewPassword}
                 autoComplete="new-password"
@@ -241,6 +271,7 @@ const AdminConfig: React.FC = () => {
               />
               <PasswordField
                 label="Confirm New Password"
+                name="confirm-new-password"
                 value={confirmPassword}
                 onChange={setConfirmPassword}
                 autoComplete="new-password"
