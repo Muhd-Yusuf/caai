@@ -2,7 +2,39 @@ import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, FileText, Image, Search, HelpCircle, Globe } from 'lucide-react';
 
+// Example images users can download and run through the ACT. The first eight are
+// examples of antisemitic imagery (IHRA tropes); the car is a deliberate control
+// — content the tool should recognise as NOT antisemitic. Laid out in rows of
+// 5, 3 and 1 (the car last), per the brief.
+const EXAMPLE_IMAGES: { src: string; caption: string }[] = [
+  // Row 1 (5)
+  { src: '/examples/jew-on-money-bags.jpg', caption: 'Caricature of a Jew atop money bags' },
+  { src: '/examples/anti-israel-art.jpg', caption: 'Anti-Israel art' },
+  { src: '/examples/neo-nazis-saluting.jpg', caption: 'Neo-Nazis saluting' },
+  { src: '/examples/yellow-star.jpg', caption: 'Yellow star' },
+  { src: '/examples/jewish-tentacles-globe.jpg', caption: '“Jewish tentacles” encircling the globe' },
+  // Row 2 (3)
+  { src: '/examples/swastika-israeli-flag.jpg', caption: 'Swastika in an Israeli-style flag' },
+  { src: '/examples/antisemitic-figurine.jpg', caption: 'Antisemitic figurine' },
+  { src: '/examples/silencing-criticism-of-israel.jpg', caption: 'Silencing criticism of Israel trope' },
+  // Row 3 (1) — the control
+  { src: '/examples/red-sports-car.jpg', caption: 'Red sports car — a “not antisemitic” control' },
+];
+
+const ExampleTile: React.FC<{ src: string; caption: string }> = ({ src, caption }) => (
+  <figure className="w-36 sm:w-40 flex flex-col">
+    <div className="h-28 rounded-lg bg-gray-900/60 ring-1 ring-white/10 overflow-hidden flex items-center justify-center">
+      <img src={src} alt={caption} loading="lazy" className="max-h-full max-w-full object-contain" />
+    </div>
+    <figcaption className="mt-2 text-xs text-blue-100 text-center leading-snug">{caption}</figcaption>
+  </figure>
+);
+
 const HowToUseACT: React.FC = () => {
+  const row1 = EXAMPLE_IMAGES.slice(0, 5);
+  const row2 = EXAMPLE_IMAGES.slice(5, 8);
+  const carImage = EXAMPLE_IMAGES[8];
+
   // Scroll to top when component mounts
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -148,6 +180,33 @@ const HowToUseACT: React.FC = () => {
                   <p className="text-blue-100 leading-relaxed">
                     Despite clear recommendations from previous reports, and the Labour Party's acknowledgment of the requirement, the Party has failed to deliver adequate training to those individuals who are responsible for handling antisemitism complaints. The Party's provision of academic education rather than practical training fails to equip decision-makers with the knowledge and skills they need. This failure contradicts the Party's zero-tolerance commitment, and contributes to a lack of trust and confidence in the complaint handling system. The failure to provide adequate training to those handling antisemitism complaints was unjustified and indirectly discriminates against Jewish Labour Party members. We consider it justifiable for the Labour Party to have six months, following publication of our report, in which to arrange and implement appropriate practical training, in consultation with Jewish stakeholders, and therefore do not make a finding that the current failure to do so is unlawful.
                   </p>
+                </div>
+
+                {/* Example images */}
+                <div>
+                  <h4 className="font-semibold text-white mb-2">Example images:</h4>
+                  <p className="text-blue-100 mb-6 text-sm sm:text-base">
+                    Save any of these images and upload them with the camera icon. The
+                    first eight are examples of antisemitic imagery; the last (the car)
+                    is a control &mdash; content the ACT should recognise as <span className="italic">not</span> antisemitic.
+                  </p>
+
+                  {/* Row 1 — 5 images */}
+                  <div className="flex flex-wrap justify-center gap-4 sm:gap-5 mb-5">
+                    {row1.map((img) => (
+                      <ExampleTile key={img.src} src={img.src} caption={img.caption} />
+                    ))}
+                  </div>
+                  {/* Row 2 — 3 images */}
+                  <div className="flex flex-wrap justify-center gap-4 sm:gap-5 mb-5">
+                    {row2.map((img) => (
+                      <ExampleTile key={img.src} src={img.src} caption={img.caption} />
+                    ))}
+                  </div>
+                  {/* Row 3 — the car (control) */}
+                  <div className="flex justify-center">
+                    <ExampleTile src={carImage.src} caption={carImage.caption} />
+                  </div>
                 </div>
               </div>
             </section>
