@@ -129,23 +129,23 @@ const AdminConfig: React.FC = () => {
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
-      setPasswordMessage('Password changed. Please log in again with your new password.');
+      setPasswordMessage('Password changed. Signing you in with your new password…');
+      // Hand the NEW credentials to the login page directly. We just captured the
+      // new password from this form, so we don't need the browser's flaky "save
+      // password" popup to have fired — the login page prefills these fields with
+      // the correct new password regardless of what the browser has saved. When
+      // the admin then clicks "Sign In", that genuine login submission is the
+      // reliable moment for the browser to offer to update its stored password.
+      sessionStorage.setItem(
+        'caai_login_prefill',
+        JSON.stringify({ email: adminEmail ?? '', password: newPassword })
+      );
       setTimeout(async () => {
         await logout();
-        // Flag the password change so the login page reloads itself once on
-        // arrival (see AdminLogin). The browser commits the updated saved
-        // credential slightly AFTER this navigation, so the first render of the
-        // login form still autofills the OLD password; a one-shot reload there
-        // picks up the freshly-saved NEW password without the admin having to
-        // hit refresh manually.
-        sessionStorage.setItem('caai_pw_changed', '1');
         // Full-page navigation (not client-side routing) so the browser starts a
-        // fresh document and reliably captures the NEW credential when the admin
-        // signs in again. This is the dependable path for keeping the saved
-        // password in sync — it does not rely on the browser's in-place
-        // "Update password?" heuristic firing on the change form.
+        // fresh document for the login form.
         window.location.assign('/admin/login');
-      }, 1800);
+      }, 1200);
     } catch (err: any) {
       setPasswordError(err.message || 'Failed to change password');
     } finally {

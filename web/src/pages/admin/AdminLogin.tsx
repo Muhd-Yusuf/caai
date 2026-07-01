@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AlertCircle, Lock, Eye, EyeOff } from 'lucide-react';
 import { useAdminAuth } from '../../hooks/useAdminAuth';
@@ -11,19 +11,44 @@ const AdminLogin: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const emailRef = useRef<HTMLInputElement>(null);
+  const passwordRef = useRef<HTMLInputElement>(null);
+  const [prefilled, setPrefilled] = useState(false);
 
-  // After a password change the admin is sent here, but the browser commits the
-  // newly-saved credential a beat AFTER this page first loads — so the password
-  // field autofills the OLD value until a manual refresh. Reload once, on
-  // arrival, to pick up the new saved password automatically. The flag is
-  // cleared first so the reloaded page does not loop.
+  // After a password change, AdminConfig stashes the NEW credentials here and
+  // sends the admin over. We prefill the form with them so the correct (new)
+  // password is shown immediately — no dependence on the browser's saved
+  // credential or its "update password?" popup, which was the source of the old
+  // password lingering. The browser tends to autofill the OLD saved password on
+  // load, sometimes a beat late, so we re-assert our value (state + the DOM node
+  // directly) a few times over ~1s to make sure ours wins.
   useEffect(() => {
-    if (sessionStorage.getItem('caai_pw_changed') === '1') {
-      sessionStorage.removeItem('caai_pw_changed');
-      // Small delay so the browser's password store has settled before reload.
-      const t = setTimeout(() => window.location.reload(), 600);
-      return () => clearTimeout(t);
+    const raw = sessionStorage.getItem('caai_login_prefill');
+    if (!raw) return;
+    sessionStorage.removeItem('caai_login_prefill');
+    let creds: { email?: string; password?: string };
+    try {
+      creds = JSON.parse(raw);
+    } catch {
+      return;
     }
+    if (!creds?.password) return;
+    setPrefilled(true);
+    const apply = () => {
+      if (creds.email) {
+        setEmail(creds.email);
+        if (emailRef.current) emailRef.current.value = creds.email;
+      }
+      setPassword(creds.password!);
+      if (passwordRef.current) passwordRef.current.value = creds.password!;
+    };
+    apply();
+    let ticks = 0;
+    const id = window.setInterval(() => {
+      apply();
+      if (++ticks >= 6) window.clearInterval(id);
+    }, 200);
+    return () => window.clearInterval(id);
   }, []);
 
   useEffect(() => {
@@ -72,12 +97,20 @@ const AdminLogin: React.FC = () => {
             <p className="text-gray-500 mt-2">CAAI Administration Panel</p>
           </div>
 
+          {prefilled && (
+            <div className="mb-5 rounded-md bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-800">
+              Your password was changed. We've filled in your new password below —
+              just click <span className="font-semibold">Sign In</span> to continue.
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
               <label htmlFor="admin-email" className="block text-sm font-medium text-gray-700 mb-1">
                 Email
               </label>
               <input
+                ref={emailRef}
                 type="email"
                 id="admin-email"
                 name="username"
@@ -96,6 +129,7 @@ const AdminLogin: React.FC = () => {
               </label>
               <div className="relative">
                 <input
+                  ref={passwordRef}
                   type={showPassword ? 'text' : 'password'}
                   id="admin-password"
                   name="password"
