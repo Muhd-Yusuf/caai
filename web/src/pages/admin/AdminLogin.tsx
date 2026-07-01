@@ -13,28 +13,41 @@ const AdminLogin: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const emailRef = useRef<HTMLInputElement>(null);
   const passwordRef = useRef<HTMLInputElement>(null);
+  const pendingCredsRef = useRef<{ email?: string; password?: string } | null>(null);
+  const userEditedRef = useRef(false);
   const [prefilled, setPrefilled] = useState(false);
 
   // After a password change, AdminConfig stashes the NEW credentials here and
-  // sends the admin over. We prefill the form with them so the correct (new)
-  // password is shown immediately — no dependence on the browser's saved
-  // credential or its "update password?" popup, which was the source of the old
-  // password lingering. The browser tends to autofill the OLD saved password on
-  // load, sometimes a beat late, so we re-assert our value (state + the DOM node
-  // directly) a few times over ~1s to make sure ours wins.
+  // sends the admin over. Read them once on mount (before the form renders) so we
+  // don't depend on the browser's saved credential or its "update password?"
+  // popup — which was the source of the old password lingering.
   useEffect(() => {
     const raw = sessionStorage.getItem('caai_login_prefill');
     if (!raw) return;
     sessionStorage.removeItem('caai_login_prefill');
-    let creds: { email?: string; password?: string };
     try {
-      creds = JSON.parse(raw);
+      const creds = JSON.parse(raw);
+      if (creds?.password) {
+        pendingCredsRef.current = creds;
+        setPrefilled(true);
+      }
     } catch {
-      return;
+      // ignore malformed prefill
     }
-    if (!creds?.password) return;
-    setPrefilled(true);
+  }, []);
+
+  // Apply the prefill only once the form is actually on screen (isLoading flips
+  // false after the session re-check). That is ALSO when the browser fires its
+  // autofill — which would drop in the OLD saved password — so we re-assert our
+  // value (React state + the DOM node directly) a few times over ~1s to make sure
+  // ours wins. We stop early if the admin starts editing, so we never clobber
+  // their typing.
+  useEffect(() => {
+    if (isLoading) return;
+    const creds = pendingCredsRef.current;
+    if (!creds) return;
     const apply = () => {
+      if (userEditedRef.current) return;
       if (creds.email) {
         setEmail(creds.email);
         if (emailRef.current) emailRef.current.value = creds.email;
@@ -46,10 +59,13 @@ const AdminLogin: React.FC = () => {
     let ticks = 0;
     const id = window.setInterval(() => {
       apply();
-      if (++ticks >= 6) window.clearInterval(id);
+      if (++ticks >= 8 || userEditedRef.current) {
+        window.clearInterval(id);
+        pendingCredsRef.current = null;
+      }
     }, 200);
     return () => window.clearInterval(id);
-  }, []);
+  }, [isLoading]);
 
   useEffect(() => {
     if (!isLoading && isAdmin) {
@@ -117,6 +133,7 @@ const AdminLogin: React.FC = () => {
                 autoComplete="username"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                onKeyDown={() => { userEditedRef.current = true; }}
                 disabled={isSubmitting}
                 className="w-full px-4 py-3 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
                 placeholder="admin@example.com"
@@ -135,6 +152,7 @@ const AdminLogin: React.FC = () => {
                   name="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  onKeyDown={() => { userEditedRef.current = true; }}
                   disabled={isSubmitting}
                   autoComplete="current-password"
                   className="w-full px-4 py-3 pr-11 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
