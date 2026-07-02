@@ -12,6 +12,12 @@ export function SessionFlagger() {
     if (location.pathname !== '/detect') {
       sessionStorage.setItem(SESSION_KEY, '1');
     }
+    // Analyses on the ACT page persist only across the Detect <-> How-to hop.
+    // Landing anywhere else clears them, matching the "leaving the tool clears
+    // your analysis" behaviour while making How-to an exception.
+    if (location.pathname !== '/detect' && location.pathname !== '/how-to-use-act') {
+      sessionStorage.removeItem('caai_act_state');
+    }
   }, [location.pathname]);
   return null;
 }

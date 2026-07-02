@@ -33,6 +33,35 @@ const WELCOME_MESSAGE =
   "Hello! I can help you detect antisemitic content in text or images. Please share what you'd like me to analyze.\n\n" +
   "You may ask me questions too such as *What is the Jewish blood libel?* Direct me for further information on content I've analyzed: *Tell me more.* Or instruct me to expand on my response. For example: *Expand on the topic in relation to the last image analyzed.* Text may be entered in a variety of languages in addition to English.";
 
+const WELCOME_ONLY_MESSAGES = [{ content: { type: 'text', content: WELCOME_MESSAGE }, isUser: false }];
+
+// The conversation normally clears whenever the user leaves the ACT page. The
+// one exception is hopping to the How-to page and back — so we persist the
+// analysis to sessionStorage here and restore it on mount. FreshTabGate clears
+// this key on navigation to any page OTHER than /detect and /how-to-use-act, so
+// the Detect <-> How-to round trip is the only case where analyses survive.
+export const ACT_STATE_KEY = 'caai_act_state';
+
+type PersistedActState = {
+  messages: Array<{ content: { type: string; content: string; fileSize?: string }; isUser: boolean }>;
+  hasInteracted: boolean;
+  lastImage: string | null;
+};
+
+function loadActState(): PersistedActState | null {
+  try {
+    const raw = sessionStorage.getItem(ACT_STATE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (parsed && Array.isArray(parsed.messages) && parsed.messages.length > 0) {
+      return parsed as PersistedActState;
+    }
+  } catch {
+    // corrupt/oversized payload — start fresh
+  }
+  return null;
+}
+
 type RateLimitState = { max: number | null; windowHours: number | null; resetAt: number };
 
 const formatCountdown = (resetAt: number): string => {
@@ -91,13 +120,9 @@ const RateLimitBanner: React.FC<{ rateLimit: RateLimitState }> = ({ rateLimit })
 };
 
 const Detect: React.FC = () => {
-  const [messages, setMessages] = useState<Array<{ content: { type: string, content: string, fileSize?: string }, isUser: boolean }>>([{
-    content: {
-      type: 'text',
-      content: WELCOME_MESSAGE
-    },
-    isUser: false
-  }]);
+  const [messages, setMessages] = useState<Array<{ content: { type: string, content: string, fileSize?: string }, isUser: boolean }>>(
+    () => loadActState()?.messages ?? WELCOME_ONLY_MESSAGES
+  );
   const [isLoading, setIsLoading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   // "Translate last" panel: null = closed. Non-null (incl. empty) = open.
@@ -107,7 +132,7 @@ const Detect: React.FC = () => {
   // Set when the last entry is already English, so we show a notice instead of
   // echoing the same text back as a "translation".
   const [englishNotice, setEnglishNotice] = useState(false);
-  const [hasInteracted, setHasInteracted] = useState(false);
+  const [hasInteracted, setHasInteracted] = useState(() => loadActState()?.hasInteracted ?? false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [rateLimit, setRateLimit] = useState<{
     max: number | null;
@@ -124,6 +149,26 @@ const Detect: React.FC = () => {
   // memory occasionally drops the prior attachment; re-sending the bytes
   // guarantees the request always lands as a fresh image submission.
   const lastImageRef = useRef<string | null>(null);
+
+  // Restore the last-submitted image on mount (so "reevaluate last image" still
+  // works after a Detect <-> How-to hop), then persist the conversation whenever
+  // it changes so it survives that hop. Wrapped in try/catch because base64
+  // images can exceed the sessionStorage quota — if so we simply skip persisting.
+  useEffect(() => {
+    const restored = loadActState();
+    if (restored?.lastImage) lastImageRef.current = restored.lastImage;
+  }, []);
+
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(
+        ACT_STATE_KEY,
+        JSON.stringify({ messages, hasInteracted, lastImage: lastImageRef.current })
+      );
+    } catch {
+      // quota exceeded (large images) — analyses just won't persist this time
+    }
+  }, [messages, hasInteracted]);
 
   const createLoadingElement = () => (
     <div className="flex justify-start mb-4">
