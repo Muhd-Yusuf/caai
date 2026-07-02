@@ -22,9 +22,9 @@ const InfoSection: React.FC = () => {
           <div className="rounded-lg p-6 border-l-4 border-blue-700 transform transition-all duration-300 hover:scale-105 hover:shadow-xl" style={{backgroundColor: '#ececec'}}>
             <h3 className="text-xl font-bold mb-3 text-gray-900">AI Tools</h3>
             <p className="text-gray-700">
-              We build AI tools to combat Jew-hate on social media, and specifically to work at scale. We also build other tools, such as ACT (Antisemitism Checker Tool), available by clicking the blue button above, to help people and companies identify antisemitic content in text and images. It's free to use – register{' '}
+              We build AI tools to combat Jew-hate on social media, and specifically to work at scale. We also build other tools, such as ACT (Antisemitism Checker Tool), available by clicking the blue button above, to help people and companies identify antisemitic content in text and images. It's free to use. Learn more{' '}
               <Link
-                to="/register"
+                to="/how-to-use-act"
                 className="text-red-600 hover:text-red-700 underline font-medium"
               >
                 here
