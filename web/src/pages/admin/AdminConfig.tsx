@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, AlertCircle, Check, Eye, EyeOff } from 'lucide-react';
 import { useAdminAuth } from '../../hooks/useAdminAuth';
 import { api } from '../../services/api';
@@ -49,7 +49,8 @@ const PasswordField: React.FC<{
 };
 
 const AdminConfig: React.FC = () => {
-  const { changePassword, logout, adminEmail } = useAdminAuth();
+  const { changePassword, login, logout, adminEmail } = useAdminAuth();
+  const navigate = useNavigate();
 
   // Rate limit config
   const [maxSubmissions, setMaxSubmissions] = useState(10);
@@ -129,23 +130,27 @@ const AdminConfig: React.FC = () => {
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
-      setPasswordMessage('Password changed. Signing you in with your new password…');
-      // Hand the NEW credentials to the login page directly. We just captured the
-      // new password from this form, so we don't need the browser's flaky "save
-      // password" popup to have fired — the login page prefills these fields with
-      // the correct new password regardless of what the browser has saved. When
-      // the admin then clicks "Sign In", that genuine login submission is the
-      // reliable moment for the browser to offer to update its stored password.
-      sessionStorage.setItem(
-        'caai_login_prefill',
-        JSON.stringify({ email: adminEmail ?? '', password: newPassword })
-      );
-      setTimeout(async () => {
+      setPasswordMessage('Password changed. Signing you back in…');
+      // Changing the password revokes the current Supabase session, so we must
+      // re-establish one. Rather than bounce to the login screen — where the
+      // browser autofills its STALE saved password and its "update password?"
+      // popup gets in the way — we sign the admin straight back in with the new
+      // password we already have in hand. No login form, no browser popup, no
+      // autofill collision. This is the reliable path.
+      try {
+        await login(adminEmail ?? '', newPassword);
+        navigate('/admin');
+      } catch {
+        // Auto sign-in failed for some reason — fall back to the login screen,
+        // prefilled with the new password so it still doesn't depend on the
+        // browser's saved credential (see AdminLogin).
+        sessionStorage.setItem(
+          'caai_login_prefill',
+          JSON.stringify({ email: adminEmail ?? '', password: newPassword })
+        );
         await logout();
-        // Full-page navigation (not client-side routing) so the browser starts a
-        // fresh document for the login form.
         window.location.assign('/admin/login');
-      }, 1200);
+      }
     } catch (err: any) {
       setPasswordError(err.message || 'Failed to change password');
     } finally {
