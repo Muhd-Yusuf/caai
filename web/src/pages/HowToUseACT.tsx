@@ -161,7 +161,7 @@ const HowToUseACT: React.FC = () => {
                 <div className="bg-gray-800 bg-opacity-50 rounded-lg p-6">
                   <h4 className="font-semibold text-white mb-3">Example 1:</h4>
                   <p className="text-blue-100 italic leading-relaxed">
-                    'Congresswoman Marjorie Taylor Greene (R-GA) had blamed "space lasers... beaming the sun's power down to Earth," funded by "Rothschild Inc"'
+                    Congresswoman Marjorie Taylor Greene (R-GA) had blamed "space lasers... beaming the sun's power down to Earth," funded by "Rothschild Inc"
                   </p>
                 </div>
 
@@ -203,20 +203,22 @@ const HowToUseACT: React.FC = () => {
                 </p>
               </div>
 
-              <div className="space-y-4 mt-6">
-                <div className="bg-gray-800 bg-opacity-50 rounded-lg p-6">
-                  <h4 className="font-semibold text-white mb-3">English:</h4>
-                  <p className="text-blue-100 italic leading-relaxed">
-                    After the Second World War the Jewish people invented the Holocaust &ndash;
-                    ensuring that they would never be accountable if they wanted to destroy European
-                    nations.
-                  </p>
-                </div>
-                <div className="bg-gray-800 bg-opacity-50 rounded-lg p-6">
-                  <h4 className="font-semibold text-white mb-3">Arabic:</h4>
-                  <p className="text-blue-100 italic leading-relaxed text-right" dir="rtl" lang="ar">
-                    بعد الحرب العالمية الثانية، اخترع اليهود المحرقة - مما يضمن عدم محاسبتهم إذا أرادوا تدمير الدول الأوروبية.
-                  </p>
+              <div className="mt-6">
+                <div className="bg-gray-800 bg-opacity-50 rounded-lg p-6 space-y-4">
+                  <div>
+                    <h4 className="font-semibold text-white mb-2">English:</h4>
+                    <p className="text-blue-100 italic leading-relaxed">
+                      After the Second World War the Jewish people invented the Holocaust &ndash;
+                      ensuring that they would never be accountable if they wanted to destroy European
+                      nations.
+                    </p>
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-white mb-2">Arabic:</h4>
+                    <p className="text-blue-100 italic leading-relaxed text-right" dir="rtl" lang="ar">
+                      بعد الحرب العالمية الثانية، اخترع اليهود المحرقة - مما يضمن عدم محاسبتهم إذا أرادوا تدمير الدول الأوروبية.
+                    </p>
+                  </div>
                 </div>
               </div>
             </section>
@@ -229,7 +231,7 @@ const HowToUseACT: React.FC = () => {
               </div>
 
               <p className="text-blue-100 mb-6">
-                Save any of these images and upload them with the camera icon. The first eight are
+                Copy and paste an image into the ACT. The first eight are
                 examples of antisemitic imagery; the last (the car) is a control &mdash; content the
                 ACT should recognise as <span className="italic">not</span> antisemitic.
               </p>
