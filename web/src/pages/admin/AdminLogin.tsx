@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AlertCircle, Lock, Eye, EyeOff } from 'lucide-react';
 import { useAdminAuth } from '../../hooks/useAdminAuth';
@@ -11,16 +11,16 @@ const AdminLogin: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const emailRef = useRef<HTMLInputElement>(null);
-  const passwordRef = useRef<HTMLInputElement>(null);
-  const pendingCredsRef = useRef<{ email?: string; password?: string } | null>(null);
-  const userEditedRef = useRef(false);
+  // Fields stay read-only (so the browser can't autofill a stale saved password)
+  // until the admin focuses one, or until we prefill on the fallback path below.
+  const [formActive, setFormActive] = useState(false);
   const [prefilled, setPrefilled] = useState(false);
 
-  // After a password change, AdminConfig stashes the NEW credentials here and
-  // sends the admin over. Read them once on mount (before the form renders) so we
-  // don't depend on the browser's saved credential or its "update password?"
-  // popup — which was the source of the old password lingering.
+  // After a password change, AdminConfig signs the admin straight back in. Only
+  // if that auto sign-in fails do we land here with the new credentials stashed —
+  // in which case prefill them so the admin can just click Sign In. This is our
+  // own value; the browser's password manager is disabled on these fields, so it
+  // can never overwrite it with the old saved password.
   useEffect(() => {
     const raw = sessionStorage.getItem('caai_login_prefill');
     if (!raw) return;
@@ -28,44 +28,15 @@ const AdminLogin: React.FC = () => {
     try {
       const creds = JSON.parse(raw);
       if (creds?.password) {
-        pendingCredsRef.current = creds;
+        setEmail(creds.email || '');
+        setPassword(creds.password);
+        setFormActive(true);
         setPrefilled(true);
       }
     } catch {
       // ignore malformed prefill
     }
   }, []);
-
-  // Apply the prefill only once the form is actually on screen (isLoading flips
-  // false after the session re-check). That is ALSO when the browser fires its
-  // autofill — which would drop in the OLD saved password — so we re-assert our
-  // value (React state + the DOM node directly) a few times over ~1s to make sure
-  // ours wins. We stop early if the admin starts editing, so we never clobber
-  // their typing.
-  useEffect(() => {
-    if (isLoading) return;
-    const creds = pendingCredsRef.current;
-    if (!creds) return;
-    const apply = () => {
-      if (userEditedRef.current) return;
-      if (creds.email) {
-        setEmail(creds.email);
-        if (emailRef.current) emailRef.current.value = creds.email;
-      }
-      setPassword(creds.password!);
-      if (passwordRef.current) passwordRef.current.value = creds.password!;
-    };
-    apply();
-    let ticks = 0;
-    const id = window.setInterval(() => {
-      apply();
-      if (++ticks >= 8 || userEditedRef.current) {
-        window.clearInterval(id);
-        pendingCredsRef.current = null;
-      }
-    }, 200);
-    return () => window.clearInterval(id);
-  }, [isLoading]);
 
   useEffect(() => {
     if (!isLoading && isAdmin) {
@@ -126,14 +97,14 @@ const AdminLogin: React.FC = () => {
                 Email
               </label>
               <input
-                ref={emailRef}
                 type="email"
                 id="admin-email"
-                name="username"
-                autoComplete="username"
+                name="admin-email"
+                autoComplete="off"
+                readOnly={!formActive}
+                onFocus={() => setFormActive(true)}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                onKeyDown={() => { userEditedRef.current = true; }}
                 disabled={isSubmitting}
                 className="w-full px-4 py-3 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
                 placeholder="admin@example.com"
@@ -146,15 +117,15 @@ const AdminLogin: React.FC = () => {
               </label>
               <div className="relative">
                 <input
-                  ref={passwordRef}
                   type={showPassword ? 'text' : 'password'}
                   id="admin-password"
-                  name="password"
+                  name="admin-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  onKeyDown={() => { userEditedRef.current = true; }}
                   disabled={isSubmitting}
-                  autoComplete="current-password"
+                  autoComplete="off"
+                  readOnly={!formActive}
+                  onFocus={() => setFormActive(true)}
                   className="w-full px-4 py-3 pr-11 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
                   placeholder="Enter your password"
                   required

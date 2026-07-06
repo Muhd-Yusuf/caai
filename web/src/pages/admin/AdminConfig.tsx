@@ -20,6 +20,12 @@ const PasswordField: React.FC<{
   minLength?: number;
 }> = ({ label, value, onChange, autoComplete, name, minLength }) => {
   const [show, setShow] = useState(false);
+  // Keep the field read-only until the admin actually focuses it. Browsers do
+  // not autofill read-only inputs, so this stops the browser's saved (and, after
+  // a change, STALE) admin password from being dropped into the field on load.
+  // Clicking Change Password is then the single source of truth — the browser's
+  // password manager is out of the loop entirely.
+  const [active, setActive] = useState(false);
   return (
     <div>
       <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
@@ -30,6 +36,8 @@ const PasswordField: React.FC<{
           value={value}
           onChange={(e) => onChange(e.target.value)}
           autoComplete={autoComplete}
+          readOnly={!active}
+          onFocus={() => setActive(true)}
           minLength={minLength}
           required
           className="w-full px-4 py-2 pr-11 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -243,22 +251,12 @@ const AdminConfig: React.FC = () => {
           <div className="bg-white rounded-xl shadow-xl p-6">
             <h2 className="text-xl font-bold text-gray-900 mb-4">Change Password</h2>
 
-            <form onSubmit={handleChangePassword} className="space-y-4">
-              {/* Hidden username field: browsers need a username next to the
-                  password fields to know WHICH saved credential to update after a
-                  password change. Without it Chrome/Safari won't offer to update
-                  the stored password, so autofill keeps showing the old one. */}
-              <input
-                type="text"
-                name="username"
-                autoComplete="username"
-                value={adminEmail ?? ''}
-                readOnly
-                tabIndex={-1}
-                aria-hidden="true"
-                className="sr-only"
-                style={{ position: 'absolute', width: 1, height: 1, opacity: 0, pointerEvents: 'none' }}
-              />
+            {/* No hidden username field here on purpose: we deliberately keep the
+                browser's password manager OUT of this form so it can't autofill a
+                stale saved password. The password change is applied server-side the
+                moment this form is submitted — nothing here depends on the browser
+                "save/update password?" popup. */}
+            <form onSubmit={handleChangePassword} className="space-y-4" autoComplete="off">
               <PasswordField
                 label="Current Password"
                 name="current-password"
