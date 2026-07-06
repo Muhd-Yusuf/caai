@@ -89,7 +89,7 @@ const HowToUseACT: React.FC = () => {
                   IHRA (the International Holocaust Remembrance Alliance) of what constitutes
                   antisemitism; also known as Jew-hate. IHRA is one of several organizations that
                   have developed a definition of antisemitism. But the more comprehensive nature of
-                  IHRA's definition mean it is widely applied by a variety of institutional bodies
+                  IHRA's definition means it is widely applied by a variety of institutional bodies
                   &ndash; whose purpose is to help make clear what Jew-hate is for people who may
                   not always understand why something (a shared image, quote, or joke) is
                   antisemitic and hateful. Our tool has been developed in support of that. If your
