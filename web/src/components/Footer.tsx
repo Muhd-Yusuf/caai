@@ -44,9 +44,10 @@ const Footer: React.FC = () => {
                   Join the forum
                 </button>
               </li>
-              <li><a href="#" className="text-white hover:text-blue-300 transition-colors">Partner with Us</a></li>
-              <li><a href="#" className="text-white hover:text-blue-300 transition-colors">Donate</a></li>
-              <li><a href="#" className="text-white hover:text-blue-300 transition-colors">Licensing</a></li>
+              <li className="text-white flex items-center flex-wrap gap-x-2 gap-y-1">
+                <span>The ACT corporate version in partnership with</span>
+                <img src="/jhive-logo-footer.webp" alt="Jhive" className="h-6 w-auto" />
+              </li>
               <li><a href="mailto:contact@combatantisemitismwithai.com" className="text-white hover:text-blue-300 transition-colors">Contact Us</a></li>
             </ul>
           </div>
@@ -55,7 +56,7 @@ const Footer: React.FC = () => {
         <div className="pt-8 border-t border-gray-600">
           <div className="flex flex-col md:flex-row justify-between items-center">
             <p className="text-white text-sm">
-              Copyright © Combat Antisemitism with AI, 2025. All rights reserved
+              Copyright © Combat Antisemitism with AI, 2026. All rights reserved
             </p>
             <div className="flex space-x-6 mt-4 md:mt-0">
               <a href="#" className="text-white hover:text-blue-300 text-sm transition-colors">
@@ -63,9 +64,6 @@ const Footer: React.FC = () => {
               </a>
               <a href="#" className="text-white hover:text-blue-300 text-sm transition-colors">
                 Terms of Service
-              </a>
-              <a href="#" className="text-white hover:text-blue-300 text-sm transition-colors">
-                Accessibility
               </a>
               <Link to="/admin/login" className="text-gray-500 hover:text-blue-300 text-sm transition-colors">
                 Admin
