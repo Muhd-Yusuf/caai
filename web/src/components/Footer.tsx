@@ -45,13 +45,23 @@ const Footer: React.FC = () => {
                 </button>
               </li>
               <li>
-                <a href="#" className="text-white hover:text-blue-300 transition-colors">
-                  The ACT corporate version in partnership with{' '}
-                  <img
-                    src="/jhive-logo-footer.webp"
-                    alt="Jhive"
-                    className="inline h-4 w-auto align-middle"
-                  />
+                {/* Fixed max width so the line wraps in the same place on every
+                    screen (the footer column itself is wider on desktop, which is
+                    why the break was shifting). "with [logo]" is kept together so
+                    the logo never drops onto its own line. */}
+                <a
+                  href="#"
+                  className="text-white hover:text-blue-300 transition-colors inline-block max-w-[230px]"
+                >
+                  The ACT corporate version in partnership{' '}
+                  <span className="whitespace-nowrap">
+                    with
+                    <img
+                      src="/jhive-logo-footer.webp"
+                      alt="Jhive"
+                      className="inline h-4 w-auto align-middle ml-1.5"
+                    />
+                  </span>
                 </a>
               </li>
               <li><a href="mailto:contact@combatantisemitismwithai.com" className="text-white hover:text-blue-300 transition-colors">Contact Us</a></li>
