@@ -44,9 +44,15 @@ const Footer: React.FC = () => {
                   Join the forum
                 </button>
               </li>
-              <li className="text-white flex items-center flex-wrap gap-x-2 gap-y-1">
-                <span>The ACT corporate version in partnership with</span>
-                <img src="/jhive-logo-footer.webp" alt="Jhive" className="h-6 w-auto" />
+              <li>
+                <a href="#" className="text-white hover:text-blue-300 transition-colors">
+                  The ACT corporate version in partnership with{' '}
+                  <img
+                    src="/jhive-logo-footer.webp"
+                    alt="Jhive"
+                    className="inline h-4 w-auto align-middle"
+                  />
+                </a>
               </li>
               <li><a href="mailto:contact@combatantisemitismwithai.com" className="text-white hover:text-blue-300 transition-colors">Contact Us</a></li>
             </ul>

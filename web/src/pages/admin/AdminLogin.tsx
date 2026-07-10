@@ -51,6 +51,10 @@ const AdminLogin: React.FC = () => {
 
     try {
       await login(email, password);
+      // Carry the password the admin just typed through to the Settings page so
+      // the "Current Password" field is pre-filled (not from the browser store —
+      // this is our own value, session-scoped and cleared on logout).
+      sessionStorage.setItem('caai_admin_current_pw', password);
       navigate('/admin');
     } catch (err: any) {
       setError(err.message || 'Login failed');

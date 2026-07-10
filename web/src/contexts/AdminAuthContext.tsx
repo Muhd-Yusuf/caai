@@ -64,6 +64,8 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setIsAdmin(false);
       setAdminEmail(null);
+      // Drop the carried-through password so it never lingers past a logout.
+      sessionStorage.removeItem('caai_admin_current_pw');
     }
   };
 

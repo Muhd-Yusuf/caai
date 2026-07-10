@@ -68,8 +68,12 @@ const AdminConfig: React.FC = () => {
   const [configMessage, setConfigMessage] = useState('');
   const [configError, setConfigError] = useState('');
 
-  // Password change
-  const [currentPassword, setCurrentPassword] = useState('');
+  // Password change. "Current Password" is pre-filled with whatever the admin
+  // typed on the login screen (stashed in sessionStorage there) so the field is
+  // never blank — carried through, not read from the browser's password store.
+  const [currentPassword, setCurrentPassword] = useState(
+    () => sessionStorage.getItem('caai_admin_current_pw') || ''
+  );
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordSaving, setPasswordSaving] = useState(false);
@@ -131,6 +135,9 @@ const AdminConfig: React.FC = () => {
 
     try {
       await changePassword(currentPassword, newPassword);
+      // The new password becomes the "current" one — keep the carried-through
+      // value in sync so a second change in the same session pre-fills correctly.
+      sessionStorage.setItem('caai_admin_current_pw', newPassword);
       // Changing the password revokes the current Supabase session, so the
       // existing token is now dead. Sign out cleanly and send the admin back to
       // the login page to re-authenticate with the new password (this avoids the
