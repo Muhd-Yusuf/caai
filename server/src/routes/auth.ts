@@ -293,4 +293,68 @@ router.put('/admin-password', authenticateAdmin, async (req: AdminRequest, res: 
   }
 });
 
+// PUT /api/auth/admin-email — Change the admin login email. Requires the current
+// password (proves it's really the admin) plus the new email.
+router.put('/admin-email', authenticateAdmin, async (req: AdminRequest, res: Response) => {
+  try {
+    const { currentPassword, newEmail } = req.body;
+
+    if (!currentPassword || !newEmail) {
+      res.status(400).json({ error: 'Current password and new email are required' });
+      return;
+    }
+
+    const email = String(newEmail).trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      res.status(400).json({ error: 'Please enter a valid email address' });
+      return;
+    }
+
+    if (email === req.adminUser!.email.toLowerCase()) {
+      res.status(400).json({ error: 'That is already your login email' });
+      return;
+    }
+
+    // Verify identity with the current password before changing the email.
+    const { error: verifyError } = await supabaseAuth.auth.signInWithPassword({
+      email: req.adminUser!.email,
+      password: currentPassword,
+    });
+
+    if (verifyError) {
+      res.status(401).json({ error: 'Current password is incorrect' });
+      return;
+    }
+
+    // Update the auth user's email. email_confirm: true marks it confirmed
+    // immediately so no verification email is required and login keeps working.
+    const { error: updateError } = await supabase.auth.admin.updateUserById(
+      req.adminUser!.auth_user_id,
+      { email, email_confirm: true }
+    );
+
+    if (updateError) {
+      res.status(500).json({ error: 'Failed to update email' });
+      return;
+    }
+
+    // Keep the admin_users record in sync — admin-login reads its email column.
+    const { error: rowError } = await supabase
+      .from('admin_users')
+      .update({ email })
+      .eq('auth_user_id', req.adminUser!.auth_user_id);
+
+    if (rowError) {
+      console.error('admin_users email sync failed:', rowError);
+      res.status(500).json({ error: 'Email updated but failed to sync admin record' });
+      return;
+    }
+
+    res.json({ message: 'Email updated successfully', email });
+  } catch (err) {
+    console.error('Email change error:', err);
+    res.status(500).json({ error: 'Failed to change email' });
+  }
+});
+
 export default router;

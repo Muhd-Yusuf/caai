@@ -57,7 +57,7 @@ const PasswordField: React.FC<{
 };
 
 const AdminConfig: React.FC = () => {
-  const { changePassword, login, logout, adminEmail } = useAdminAuth();
+  const { changePassword, changeEmail, login, logout, adminEmail } = useAdminAuth();
   const navigate = useNavigate();
 
   // Rate limit config
@@ -79,6 +79,16 @@ const AdminConfig: React.FC = () => {
   const [passwordSaving, setPasswordSaving] = useState(false);
   const [passwordMessage, setPasswordMessage] = useState('');
   const [passwordError, setPasswordError] = useState('');
+
+  // Email change. Like the password form, the current-password field is
+  // pre-filled with what the admin typed at login so it's never blank.
+  const [newEmail, setNewEmail] = useState('');
+  const [emailCurrentPassword, setEmailCurrentPassword] = useState(
+    () => sessionStorage.getItem('caai_admin_current_pw') || ''
+  );
+  const [emailSaving, setEmailSaving] = useState(false);
+  const [emailMessage, setEmailMessage] = useState('');
+  const [emailError, setEmailError] = useState('');
 
   useEffect(() => {
     loadConfig();
@@ -173,6 +183,43 @@ const AdminConfig: React.FC = () => {
     }
   };
 
+  const handleChangeEmail = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setEmailError('');
+    setEmailMessage('');
+
+    if (!newEmail.trim()) {
+      setEmailError('Please enter a new email address');
+      return;
+    }
+
+    setEmailSaving(true);
+
+    try {
+      const updatedEmail = await changeEmail(emailCurrentPassword, newEmail.trim());
+      setNewEmail('');
+      setEmailMessage('Email updated. Signing you back in…');
+      // The password is unchanged, so re-authenticate with the NEW email + the
+      // same password to guarantee the session matches the new login identity
+      // (mirrors the password-change flow — no login screen, no browser popup).
+      try {
+        await login(updatedEmail, emailCurrentPassword);
+        navigate('/admin');
+      } catch {
+        sessionStorage.setItem(
+          'caai_login_prefill',
+          JSON.stringify({ email: updatedEmail, password: emailCurrentPassword })
+        );
+        await logout();
+        window.location.assign('/admin/login');
+      }
+    } catch (err: any) {
+      setEmailError(err.message || 'Failed to change email');
+    } finally {
+      setEmailSaving(false);
+    }
+  };
+
   return (
     <main
       className="min-h-screen"
@@ -252,6 +299,63 @@ const AdminConfig: React.FC = () => {
                 </button>
               </form>
             )}
+          </div>
+
+          {/* Change Login Email */}
+          <div className="bg-white rounded-xl shadow-xl p-6 mb-6">
+            <h2 className="text-xl font-bold text-gray-900 mb-4">Change Login Email</h2>
+            <p className="text-gray-600 text-sm mb-6">
+              Current login email:{' '}
+              <span className="font-medium text-gray-900">{adminEmail || '—'}</span>.
+              You'll be signed back in with the new email after updating.
+            </p>
+
+            <form onSubmit={handleChangeEmail} className="space-y-4" autoComplete="off">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  New Email
+                </label>
+                <input
+                  type="email"
+                  name="new-admin-email"
+                  autoComplete="off"
+                  value={newEmail}
+                  onChange={(e) => setNewEmail(e.target.value)}
+                  placeholder="new-admin@example.com"
+                  required
+                  className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <PasswordField
+                label="Current Password"
+                name="email-current-password"
+                value={emailCurrentPassword}
+                onChange={setEmailCurrentPassword}
+                autoComplete="current-password"
+              />
+
+              {emailError && (
+                <div className="flex items-center text-red-600 text-sm">
+                  <AlertCircle size={16} className="mr-1" />
+                  {emailError}
+                </div>
+              )}
+
+              {emailMessage && (
+                <div className="flex items-center text-green-600 text-sm">
+                  <Check size={16} className="mr-1" />
+                  {emailMessage}
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={emailSaving}
+                className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
+              >
+                {emailSaving ? 'Updating...' : 'Update Email'}
+              </button>
+            </form>
           </div>
 
           {/* Change Password */}

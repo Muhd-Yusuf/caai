@@ -8,6 +8,7 @@ interface AdminContextType {
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
+  changeEmail: (currentPassword: string, newEmail: string) => Promise<string>;
 }
 
 export const AdminAuthContext = createContext<AdminContextType>({
@@ -17,6 +18,7 @@ export const AdminAuthContext = createContext<AdminContextType>({
   login: async () => {},
   logout: async () => {},
   changePassword: async () => {},
+  changeEmail: async () => '',
 });
 
 export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
@@ -73,9 +75,18 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
     await api.put('/auth/admin-password', { currentPassword, newPassword });
   };
 
+  const changeEmail = async (currentPassword: string, newEmail: string) => {
+    const data = await api.put<{ email: string }>('/auth/admin-email', {
+      currentPassword,
+      newEmail,
+    });
+    setAdminEmail(data.email);
+    return data.email;
+  };
+
   return (
     <AdminAuthContext.Provider
-      value={{ isAdmin, isLoading, adminEmail, login, logout, changePassword }}
+      value={{ isAdmin, isLoading, adminEmail, login, logout, changePassword, changeEmail }}
     >
       {children}
     </AdminAuthContext.Provider>
