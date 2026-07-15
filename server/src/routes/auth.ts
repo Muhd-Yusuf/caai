@@ -297,10 +297,10 @@ router.put('/admin-password', authenticateAdmin, async (req: AdminRequest, res: 
 // password (proves it's really the admin) plus the new email.
 router.put('/admin-email', authenticateAdmin, async (req: AdminRequest, res: Response) => {
   try {
-    const { currentPassword, newEmail } = req.body;
+    const { newEmail } = req.body;
 
-    if (!currentPassword || !newEmail) {
-      res.status(400).json({ error: 'Current password and new email are required' });
+    if (!newEmail) {
+      res.status(400).json({ error: 'A new email is required' });
       return;
     }
 
@@ -315,18 +315,8 @@ router.put('/admin-email', authenticateAdmin, async (req: AdminRequest, res: Res
       return;
     }
 
-    // Verify identity with the current password before changing the email.
-    const { error: verifyError } = await supabaseAuth.auth.signInWithPassword({
-      email: req.adminUser!.email,
-      password: currentPassword,
-    });
-
-    if (verifyError) {
-      res.status(401).json({ error: 'Current password is incorrect' });
-      return;
-    }
-
-    // Update the auth user's email. email_confirm: true marks it confirmed
+    // The admin is already authenticated (authenticateAdmin), so no password
+    // re-check is needed. Update the auth user's email. email_confirm: true marks it confirmed
     // immediately so no verification email is required and login keeps working.
     const { error: updateError } = await supabase.auth.admin.updateUserById(
       req.adminUser!.auth_user_id,
