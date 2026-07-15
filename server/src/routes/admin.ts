@@ -160,15 +160,59 @@ router.get('/config', async (req: AdminRequest, res: Response) => {
       .eq('key', 'rate_limit')
       .single();
 
+    // Feature flags (currently just the video-analysis toggle) live under a
+    // separate 'features' key so they're independent of the rate-limit config.
+    const { data: featRow } = await supabase
+      .from('app_config')
+      .select('value')
+      .eq('key', 'features')
+      .single();
+    const video_enabled = featRow?.value?.video_enabled === true;
+
     if (error || !data) {
-      res.json({ config: { max_submissions: 10, window_hours: 8 }, email });
+      res.json({ config: { max_submissions: 10, window_hours: 8 }, email, video_enabled });
       return;
     }
 
-    res.json({ config: data.value, email });
+    res.json({ config: data.value, email, video_enabled });
   } catch (err) {
     console.error('Get config error:', err);
     res.status(500).json({ error: 'Failed to get config' });
+  }
+});
+
+// PUT /api/admin/video — Enable/disable video analysis on the public tool.
+router.put('/video', async (req: AdminRequest, res: Response) => {
+  try {
+    const { enabled } = req.body;
+
+    if (typeof enabled !== 'boolean') {
+      res.status(400).json({ error: 'enabled must be a boolean' });
+      return;
+    }
+
+    // Merge into the existing features object so other flags aren't clobbered.
+    const { data: existing } = await supabase
+      .from('app_config')
+      .select('value')
+      .eq('key', 'features')
+      .single();
+
+    const value = { ...(existing?.value ?? {}), video_enabled: enabled };
+
+    const { error } = await supabase
+      .from('app_config')
+      .upsert({ key: 'features', value });
+
+    if (error) {
+      res.status(500).json({ error: 'Failed to update video setting' });
+      return;
+    }
+
+    res.json({ video_enabled: enabled });
+  } catch (err) {
+    console.error('Update video setting error:', err);
+    res.status(500).json({ error: 'Failed to update video setting' });
   }
 });
 

@@ -1,6 +1,7 @@
 import { Router, Response } from 'express';
 import { config } from '../config';
 import { optionalAuth } from '../middleware/auth';
+import { supabase } from '../services/supabase';
 import { checkRateLimit, getRateLimitConfig, recordSubmission } from '../services/rateLimiter';
 import { AuthenticatedRequest } from '../types';
 import { extractFrames } from '../services/videoProcessor';
@@ -8,6 +9,21 @@ import { SYSTEM_PROMPT } from '../prompts/system-prompt';
 import franc from 'franc';
 
 const router = Router();
+
+// GET /api/act/features — Public feature flags for the tool UI (e.g. whether
+// video analysis input is currently enabled). No auth: the tool reads this on load.
+router.get('/features', async (_req, res: Response) => {
+  try {
+    const { data } = await supabase
+      .from('app_config')
+      .select('value')
+      .eq('key', 'features')
+      .single();
+    res.json({ video_enabled: data?.value?.video_enabled === true });
+  } catch {
+    res.json({ video_enabled: false });
+  }
+});
 
 interface OpenAITextContent {
   type: 'text';

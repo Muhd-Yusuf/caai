@@ -80,15 +80,17 @@ const AdminConfig: React.FC = () => {
   const [passwordMessage, setPasswordMessage] = useState('');
   const [passwordError, setPasswordError] = useState('');
 
-  // Email change. Like the password form, the current-password field is
-  // pre-filled with what the admin typed at login so it's never blank.
+  // Email change. The admin is already authenticated, so no password is needed.
   const [newEmail, setNewEmail] = useState('');
-  const [emailCurrentPassword, setEmailCurrentPassword] = useState(
-    () => sessionStorage.getItem('caai_admin_current_pw') || ''
-  );
   const [emailSaving, setEmailSaving] = useState(false);
   const [emailMessage, setEmailMessage] = useState('');
   const [emailError, setEmailError] = useState('');
+
+  // Video analysis toggle. The video pipeline is intact server-side but input is
+  // blocked on the tool; this flips it on/off. Starts disabled.
+  const [videoEnabled, setVideoEnabled] = useState(false);
+  const [videoSaving, setVideoSaving] = useState(false);
+  const [videoError, setVideoError] = useState('');
 
   useEffect(() => {
     loadConfig();
@@ -96,9 +98,12 @@ const AdminConfig: React.FC = () => {
 
   const loadConfig = async () => {
     try {
-      const data = await api.get<{ config: RateLimitConfig }>('/admin/config');
+      const data = await api.get<{ config: RateLimitConfig; video_enabled?: boolean }>(
+        '/admin/config'
+      );
       setMaxSubmissions(data.config.max_submissions);
       setWindowHours(data.config.window_hours);
+      setVideoEnabled(data.video_enabled === true);
     } catch (err: any) {
       setConfigError(err.message || 'Failed to load config');
     } finally {
@@ -196,27 +201,30 @@ const AdminConfig: React.FC = () => {
     setEmailSaving(true);
 
     try {
-      const updatedEmail = await changeEmail(emailCurrentPassword, newEmail.trim());
+      const updatedEmail = await changeEmail(newEmail.trim());
       setNewEmail('');
-      setEmailMessage('Email updated. Signing you back in…');
-      // The password is unchanged, so re-authenticate with the NEW email + the
-      // same password to guarantee the session matches the new login identity
-      // (mirrors the password-change flow — no login screen, no browser popup).
-      try {
-        await login(updatedEmail, emailCurrentPassword);
-        navigate('/admin');
-      } catch {
-        sessionStorage.setItem(
-          'caai_login_prefill',
-          JSON.stringify({ email: updatedEmail, password: emailCurrentPassword })
-        );
-        await logout();
-        window.location.assign('/admin/login');
-      }
+      // Email changes don't revoke the Supabase session, so the current login
+      // stays valid — just confirm the new address (context updates adminEmail).
+      setEmailMessage(`Login email updated to ${updatedEmail}. Use it next time you sign in.`);
+      setTimeout(() => setEmailMessage(''), 6000);
     } catch (err: any) {
       setEmailError(err.message || 'Failed to change email');
     } finally {
       setEmailSaving(false);
+    }
+  };
+
+  const handleToggleVideo = async () => {
+    setVideoError('');
+    setVideoSaving(true);
+    const next = !videoEnabled;
+    try {
+      await api.put('/admin/video', { enabled: next });
+      setVideoEnabled(next);
+    } catch (err: any) {
+      setVideoError(err.message || 'Failed to update video setting');
+    } finally {
+      setVideoSaving(false);
     }
   };
 
@@ -326,13 +334,6 @@ const AdminConfig: React.FC = () => {
                   className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
-              <PasswordField
-                label="Current Password"
-                name="email-current-password"
-                value={emailCurrentPassword}
-                onChange={setEmailCurrentPassword}
-                autoComplete="current-password"
-              />
 
               {emailError && (
                 <div className="flex items-center text-red-600 text-sm">
@@ -359,7 +360,7 @@ const AdminConfig: React.FC = () => {
           </div>
 
           {/* Change Password */}
-          <div className="bg-white rounded-xl shadow-xl p-6">
+          <div className="bg-white rounded-xl shadow-xl p-6 mb-6">
             <h2 className="text-xl font-bold text-gray-900 mb-4">Change Password</h2>
 
             {/* No hidden username field here on purpose: we deliberately keep the
@@ -414,6 +415,54 @@ const AdminConfig: React.FC = () => {
                 {passwordSaving ? 'Changing...' : 'Change Password'}
               </button>
             </form>
+          </div>
+
+          {/* Video analysis toggle */}
+          <div className="bg-white rounded-xl shadow-xl p-6 mt-6">
+            <h2 className="text-xl font-bold text-gray-900 mb-4">Video analysis</h2>
+            <p className="text-gray-600 text-sm mb-6">
+              Turn video input on or off in the tool. When disabled, users can only
+              submit text and images. The video pipeline is kept in place either way;
+              this only controls whether users can upload videos.
+            </p>
+
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-2 text-sm">
+                <span className="text-gray-500">Status:</span>
+                <span
+                  className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                    videoEnabled
+                      ? 'bg-green-100 text-green-800'
+                      : 'bg-gray-100 text-gray-600'
+                  }`}
+                >
+                  {videoEnabled ? 'Enabled' : 'Disabled'}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={handleToggleVideo}
+                disabled={videoSaving}
+                className={`px-6 py-2 rounded-lg text-white disabled:opacity-50 transition-colors ${
+                  videoEnabled
+                    ? 'bg-red-600 hover:bg-red-700'
+                    : 'bg-green-600 hover:bg-green-700'
+                }`}
+              >
+                {videoSaving
+                  ? 'Saving...'
+                  : videoEnabled
+                    ? 'Disable video'
+                    : 'Enable video'}
+              </button>
+            </div>
+
+            {videoError && (
+              <div className="flex items-center text-red-600 text-sm mt-4">
+                <AlertCircle size={16} className="mr-1" />
+                {videoError}
+              </div>
+            )}
           </div>
         </div>
       </div>

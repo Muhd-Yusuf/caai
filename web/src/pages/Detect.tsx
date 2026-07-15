@@ -142,6 +142,8 @@ const Detect: React.FC = () => {
   // Re-renders the countdown banner once a second so the "try again in X" label stays current
   const [, setNowTick] = useState(0);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+  // Whether video input is enabled (admin-controlled via Settings → Video analysis).
+  const [videoEnabled, setVideoEnabled] = useState(false);
   // Track which video elements have already been autoplayed to prevent replay on re-render
   const playedVideos = useRef<WeakSet<HTMLVideoElement>>(new WeakSet());
   // Last submitted image (data URL), kept so we can re-attach it when the user
@@ -157,6 +159,15 @@ const Detect: React.FC = () => {
   useEffect(() => {
     const restored = loadActState();
     if (restored?.lastImage) lastImageRef.current = restored.lastImage;
+  }, []);
+
+  // Read the video-analysis feature flag once on load. Defaults to off if the
+  // request fails, so video stays blocked unless the admin has enabled it.
+  useEffect(() => {
+    api
+      .get<{ video_enabled: boolean }>('/act/features')
+      .then((d) => setVideoEnabled(d.video_enabled === true))
+      .catch(() => setVideoEnabled(false));
   }, []);
 
   useEffect(() => {
@@ -278,11 +289,42 @@ const Detect: React.FC = () => {
   };
 
   const allowedImageTypes = ['image/jpeg', 'image/bmp', 'image/png'];
+  const allowedVideoTypes = ['video/mp4', 'video/quicktime', 'video/webm'];
+  const MAX_VIDEO_BYTES = 25 * 1024 * 1024; // 25 MB
 
   const processFile = useCallback((file: File) => {
-    if (!allowedImageTypes.includes(file.type)) {
+    const isImage = allowedImageTypes.includes(file.type);
+    const isVideo = file.type.startsWith('video/');
+
+    if (isVideo && !videoEnabled) {
       setMessages(prev => [...prev, {
-        content: { content: 'Error: Please upload a JPEG, PNG, or BMP image.', type: 'text' },
+        content: { content: 'Error: Video analysis is currently turned off.', type: 'text' },
+        isUser: false,
+      }]);
+      return;
+    }
+
+    if (!isImage && !isVideo) {
+      setMessages(prev => [...prev, {
+        content: {
+          content: videoEnabled
+            ? 'Error: Please upload a JPEG, PNG, or BMP image, or an MP4, MOV, or WebM video.'
+            : 'Error: Please upload a JPEG, PNG, or BMP image.',
+          type: 'text',
+        },
+        isUser: false,
+      }]);
+      return;
+    }
+
+    if (isVideo && (!allowedVideoTypes.includes(file.type) || file.size > MAX_VIDEO_BYTES)) {
+      setMessages(prev => [...prev, {
+        content: {
+          content: file.size > MAX_VIDEO_BYTES
+            ? 'Error: That video is too large. Please keep videos under 25 MB.'
+            : 'Error: Please upload an MP4, MOV, or WebM video.',
+          type: 'text',
+        },
         isUser: false,
       }]);
       return;
@@ -297,12 +339,18 @@ const Detect: React.FC = () => {
     reader.onload = async (event) => {
       setUploadProgress(null);
       if (event.target?.result) {
+        const result = event.target.result as string;
+        if (isVideo) {
+          const fileSize = `${(file.size / (1024 * 1024)).toFixed(1)} MB`;
+          sendMessage(result, 'video', fileSize);
+          return;
+        }
         try {
-          const compressedImage = await compressImage(event.target.result as string, 800, 600, 0.6);
+          const compressedImage = await compressImage(result, 800, 600, 0.6);
           sendMessage(compressedImage, 'image');
         } catch (error) {
           console.error('Error compressing image:', error);
-          sendMessage(event.target.result as string, 'image');
+          sendMessage(result, 'image');
         }
       }
     };
@@ -316,7 +364,7 @@ const Detect: React.FC = () => {
       }]);
     };
     reader.readAsDataURL(file);
-  }, []);
+  }, [videoEnabled]);
 
   // Detects messages that reference the previously-submitted image and request
   // a re-analysis. When matched and a last image is available, the client
@@ -527,7 +575,9 @@ const Detect: React.FC = () => {
       if (!items) return;
 
       for (let i = 0; i < items.length; i++) {
-        if (items[i].type.indexOf('image') !== -1) {
+        const isImage = items[i].type.indexOf('image') !== -1;
+        const isVideo = videoEnabled && items[i].type.indexOf('video') !== -1;
+        if (isImage || isVideo) {
           const file = items[i].getAsFile();
           if (file) {
             processFile(file);
@@ -539,7 +589,7 @@ const Detect: React.FC = () => {
 
     window.addEventListener('paste', handlePaste);
     return () => window.removeEventListener('paste', handlePaste);
-  }, [processFile]);
+  }, [processFile, videoEnabled]);
 
   const handleShareClick = () => {
     if (hasInteracted) {
@@ -1251,12 +1301,20 @@ const Detect: React.FC = () => {
                         id="cameraLabel"
                         className="cursor-pointer bg-gray-200 hover:bg-gray-300 px-3 sm:px-4 py-2 sm:py-3 rounded-lg flex items-center transition-colors"
                       >
-                        <img src={cameraIcon} alt="Upload image" className="w-5 h-5 sm:w-6 sm:h-6" />
+                        <img
+                          src={cameraIcon}
+                          alt={videoEnabled ? 'Upload image or video' : 'Upload image'}
+                          className="w-5 h-5 sm:w-6 sm:h-6"
+                        />
                         <input
                           type="file"
                           id="imageInput"
                           className="hidden"
-                          accept="image/jpeg,image/bmp,image/png"
+                          accept={
+                            videoEnabled
+                              ? 'image/jpeg,image/bmp,image/png,video/mp4,video/quicktime,video/webm'
+                              : 'image/jpeg,image/bmp,image/png'
+                          }
                           onChange={handleImageUpload}
                         />
                       </label>
