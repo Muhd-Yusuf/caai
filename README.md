@@ -4,7 +4,7 @@ A comprehensive AI-powered platform for detecting, analyzing, and combating anti
 
 ## 🌟 Live Demo
 
-Visit the live application: [https://combat-antisemitism-2azo.bolt.host](https://combat-antisemitism-2azo.bolt.host)
+Visit the live application: [https://act-caai.vercel.app](https://act-caai.vercel.app)
 
 ## 📋 Overview
 
@@ -239,8 +239,8 @@ npm run build
 ```
 
 ### Deployment Platforms
-- **Bolt Hosting**: Current deployment platform
-- **Netlify/Vercel**: Alternative static hosting options
+- **Vercel**: Frontend hosting (current deployment)
+- **Render**: Backend/API hosting (current deployment)
 - **Custom Domain**: Configurable through hosting provider
 
 ## 🤝 Contributing
@@ -262,7 +262,7 @@ npm run build
 
 - **Email**: jmyers31@gmail.com
 - **WhatsApp Forum**: [Join the CAAI Community](https://chat.whatsapp.com/GKHHEgY1NvI2xBA7PxLEyC)
-- **Website**: [https://combat-antisemitism-2azo.bolt.host](https://combat-antisemitism-2azo.bolt.host)
+- **Website**: [https://act-caai.vercel.app](https://act-caai.vercel.app)
 
 ## 📄 License
 
