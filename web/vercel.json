@@ -1,6 +1,6 @@
 {
   "rewrites": [
-    { "source": "/api/:path*", "destination": "https://caai-f8mv.onrender.com/api/:path*" },
+    { "source": "/api/:path*", "destination": "https://act-beta-2-0.onrender.com/api/:path*" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
