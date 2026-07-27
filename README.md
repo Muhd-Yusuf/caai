@@ -4,7 +4,7 @@ A comprehensive AI-powered platform for detecting, analyzing, and combating anti
 
 ## 🌟 Live Demo
 
-Visit the live application: [https://act-caai.vercel.app](https://act-caai.vercel.app)
+Visit the live application: [https://www.combatantisemitismwithai.com](https://www.combatantisemitismwithai.com)
 
 ## 📋 Overview
 
@@ -262,7 +262,7 @@ npm run build
 
 - **Email**: jmyers31@gmail.com
 - **WhatsApp Forum**: [Join the CAAI Community](https://chat.whatsapp.com/GKHHEgY1NvI2xBA7PxLEyC)
-- **Website**: [https://act-caai.vercel.app](https://act-caai.vercel.app)
+- **Website**: [https://www.combatantisemitismwithai.com](https://www.combatantisemitismwithai.com)
 
 ## 📄 License
 
